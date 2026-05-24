@@ -277,7 +277,11 @@ function deobfuscate() {
     });
     if (sfc !== code) { steps.push('String.fromCharCode'); code = sfc; }
 
-    // Lua string.char(n,n,...) — handles multiline, Lua Armor, custom encoders
+    // Lua hex literals 0xFF → decimal (luaobfuscator.com uses 0xNN in string.char)
+    const hexLit = code.replace(/\b(0x[0-9a-fA-F]+)\b/g, (_, h) => String(parseInt(h, 16)));
+    if (hexLit !== code) { steps.push('Hex literals → decimal'); code = hexLit; }
+
+    // Lua string.char(n,n,...) — handles decimal and hex (luaobfuscator.com, Lua Armor, etc.)
     const lsc = code.replace(/string\.char\s*\(([\d,\s\n\r]+)\)/gm, (_, ns) => {
       try {
         const nums = ns.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
@@ -362,6 +366,26 @@ function deobfuscate() {
         }
       } catch {}
     }
+
+    // Lua simple arithmetic constant folding: (3+4) → 7, useful after hex literal expand
+    const arith = code.replace(/\(\s*(\d+)\s*([+\-*])\s*(\d+)\s*\)/g, (_, a, op, b) => {
+      const va = parseInt(a), vb = parseInt(b);
+      if (op === '+') return String(va + vb);
+      if (op === '-') return String(va - vb);
+      if (op === '*' && va * vb < 32768) return String(va * vb);
+      return _;
+    });
+    if (arith !== code) { steps.push('Arithmetic folding'); code = arith; }
+
+    // string.byte lookup table reverse: {[65]="A",[66]="B",...}[n] → char
+    const sbTblRe = /\{([^}]{20,})\}\s*\[(\d+)\]/g;
+    const sbDecoded = code.replace(sbTblRe, (whole, body, idx) => {
+      try {
+        const entry = body.match(new RegExp('\\[' + idx + '\\]\\s*=\\s*["\']([^"\']+)["\']'));
+        return entry ? `"${entry[1]}"` : whole;
+      } catch { return whole; }
+    });
+    if (sbDecoded !== code) { steps.push('Byte lookup table'); code = sbDecoded; }
 
     // Dean Edwards packer — flag it (can't safely eval but mark)
     if (pass === 0 && /eval\s*\(\s*function\s*\(\s*p\s*,\s*a\s*,\s*c\s*,\s*k\s*,\s*e/.test(code)) {
@@ -513,16 +537,26 @@ function extractBytecodeStrings(code) {
 
 function detectObfuscator(code) {
   // Named comments / string markers
-  if (/Luraph/i.test(code))                         return 'Luraph (Lua VM obfuscator)';
-  if (/IronBrew/i.test(code))                        return 'IronBrew 2 (Lua VM obfuscator)';
-  if (/Moonsec/i.test(code))                         return 'Moonsec (Lua VM obfuscator)';
-  if (/Prometheus/i.test(code))                      return 'Prometheus (Lua string-table obfuscator)';
-  if (/LuaSeel|Lua\s*Seel/i.test(code))             return 'LuaSeel (Lua obfuscator)';
-  if (/LuaArmor|Lua\s*Armor/i.test(code))           return 'Lua Armor (string.char obfuscator)';
-  if (/Synapse\s*Xen|SynXen/i.test(code))          return 'Synapse Xen (VM-based exploit obfuscator)';
-  if (/Comet\s*Obf/i.test(code))                    return 'Comet obfuscator';
-  if (/ByteCode|Bytecode\s*VM/i.test(code))         return 'Generic Lua Bytecode VM';
-  if (/obfuscated by obfuscator\.io/i.test(code))   return 'obfuscator.io (JS)';
+  if (/Luraph/i.test(code))                                   return 'Luraph (Lua VM obfuscator)';
+  if (/IronBrew/i.test(code))                                  return 'IronBrew 2 (Lua VM obfuscator)';
+  if (/Moonsec/i.test(code))                                   return 'Moonsec (Lua VM obfuscator)';
+  if (/Prometheus/i.test(code))                                return 'Prometheus (Lua string-table obfuscator)';
+  if (/LuaSeel|Lua\s*Seel/i.test(code))                      return 'LuaSeel (Lua obfuscator)';
+  if (/LuaArmor|Lua\s*Armor/i.test(code))                    return 'Lua Armor (string.char obfuscator)';
+  if (/Synapse\s*Xen|SynXen/i.test(code))                   return 'Synapse Xen (VM-based exploit obfuscator)';
+  if (/Comet\s*Obf/i.test(code))                             return 'Comet obfuscator';
+  if (/ByteCode|Bytecode\s*VM/i.test(code))                  return 'Generic Lua Bytecode VM';
+  if (/luaobfuscator\.com/i.test(code))                      return 'luaobfuscator.com';
+  if (/obfuscated by obfuscator\.io/i.test(code))            return 'obfuscator.io (JS)';
+
+  // luaobfuscator.com structural fingerprint:
+  // - single-letter locals everywhere + 0xNN hex char codes + no comments
+  const hexCharCount = (code.match(/0x[0-9a-fA-F]{2}\b/g) || []).length;
+  const singleLetterLocals = (code.match(/\blocal\s+[a-z]\s*=/g) || []).length;
+  if (hexCharCount > 10 && singleLetterLocals > 5) return 'luaobfuscator.com (hex char encoding)';
+
+  // luaobfuscator.com VM level: repeated function/table pattern with math ops
+  if (/math\.(floor|random|huge)/.test(code) && hexCharCount > 5 && /string\.char/.test(code)) return 'luaobfuscator.com (VM level — hex + math obfuscation)';
 
   // Luraph / Moonsec structural: long bytecode string + bit library ops
   if (/^local\s+\w\s*=\s*["'][^"']{300,}["']/.test(code) && /bit\.(b?xor|band|bor|rshift|lshift)/.test(code)) {

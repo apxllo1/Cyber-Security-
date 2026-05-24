@@ -42,6 +42,7 @@ function checkPass() {
 
   if (!pass) {
     bar.style.width = '0';
+    bar.className = 'strength-bar';
     res.textContent = 'Enter a password above...';
     res.style.color = '';
     const lbl = document.getElementById('strengthLabel');
@@ -69,12 +70,13 @@ function checkPass() {
   const pct = Math.round((score / checks.length) * 100);
   bar.style.width = pct + '%';
 
+  bar.className = 'strength-bar';
   let label, color;
-  if (pct <= 33)      { label = 'WEAK';   color = '#ff4444'; }
-  else if (pct <= 66) { label = 'MEDIUM'; color = '#ffd700'; }
-  else                { label = 'STRONG'; color = '#00ff88'; }
+  if (pct <= 33)      { label = 'WEAK';   bar.classList.add('weak');   color = '#ef4444'; }
+  else if (pct <= 50) { label = 'FAIR';   bar.classList.add('fair');   color = '#f59e0b'; }
+  else if (pct <= 75) { label = 'GOOD';   bar.classList.add('good');   color = '#3b82f6'; }
+  else                { label = 'STRONG'; bar.classList.add('strong'); color = '#10b981'; }
 
-  bar.style.background = color;
   res.style.color = color;
 
   const labelEl = document.getElementById('strengthLabel');
@@ -124,10 +126,10 @@ async function fetchIP(url) {
 function setResult(id, text, type) {
   const el = document.getElementById(id);
   el.textContent = text;
-  el.style.color = type === 'err'     ? '#ff4444'
-                 : type === 'warn'    ? '#ffd700'
-                 : type === 'loading' ? '#5a6a7a'
-                 : '#00d4ff';
+  el.style.color = type === 'err'     ? '#ef4444'
+                 : type === 'warn'    ? '#f59e0b'
+                 : type === 'loading' ? '#a09cb3'
+                 : '#6d28d9';
 }
 
 function copyResult(id) {

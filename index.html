@@ -6,27 +6,30 @@
   <title>CyberSec Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <header>
-    <div class="logo">CyberSec</div>
+    <div class="logo">
+      <div class="logo-mark">CS</div>
+      CyberSec
+    </div>
     <nav>
       <a href="#tools">Tools</a>
       <a href="#roblox">Roblox</a>
       <a href="#skills">Skills</a>
       <a href="#contact">Contact</a>
     </nav>
-    <div class="nav-badge">Available for hire</div>
+    <div class="nav-badge"><span class="pulse"></span>Available for hire</div>
   </header>
 
   <!-- HERO -->
   <section class="hero">
     <div class="hero-content">
       <div class="hero-tag">Cybersecurity &amp; Roblox Security</div>
-      <h1>Protecting Games.<br />Detecting Threats.</h1>
+      <h1>Protecting Games.<br /><span class="grad">Detecting Threats.</span></h1>
       <p class="hero-sub">Anti-cheat systems, exploit detection, network security tools — built and ready to deploy.</p>
       <div class="hero-btns">
         <a href="#tools" class="btn-primary">Explore Tools</a>
@@ -43,7 +46,7 @@
         <span class="stat-label">Anti-Cheat Systems</span>
       </div>
       <div class="stat-card">
-        <span class="stat-num">100%</span>
+        <span class="stat-num">100<small>%</small></span>
         <span class="stat-label">Server-Side Validated</span>
       </div>
     </div>
@@ -52,13 +55,14 @@
   <!-- TOOLS -->
   <section id="tools" class="section">
     <div class="section-header">
-      <h2>Security Tools</h2>
+      <div class="eyebrow">Security Tools</div>
+      <h2>Your Cybersecurity Toolkit</h2>
       <p>Browser-based — no data ever leaves your device.</p>
     </div>
     <div class="tools-grid">
 
       <div class="tool-card">
-        <div class="tool-icon purple">&#35;</div>
+        <div class="tool-icon purple">#</div>
         <h3>Hash Generator</h3>
         <p class="tool-desc">Generate cryptographic hashes for any string using SHA-256, SHA-1, or SHA-512.</p>
         <textarea id="hashInput" placeholder="Enter text to hash..." rows="3"></textarea>
@@ -116,18 +120,26 @@
   <!-- ROBLOX -->
   <section id="roblox" class="section">
     <div class="section-header">
-      <h2>Roblox Security</h2>
-      <p>Server-side anti-cheat techniques used in production games.</p>
+      <div class="eyebrow">Roblox Security</div>
+      <h2>Anti-Cheat Systems</h2>
+      <p>Server-side techniques used in production games.</p>
     </div>
     <div class="roblox-grid">
 
       <div class="info-card">
-        <div class="info-icon">⚡</div>
-        <div class="info-tag">Detection</div>
+        <div class="info-row">
+          <div class="info-icon">⚡</div>
+          <div class="info-tag">Detection</div>
+        </div>
         <h3>Speed Hack Detection</h3>
         <p>Server-side velocity checks compare actual displacement per tick against the physics max. Clients can't fake server-side math.</p>
         <div class="code-block">
-          <div class="code-header"><span>Luau</span></div>
+          <div class="code-header">
+            <span class="dot r"></span>
+            <span class="dot y"></span>
+            <span class="dot g"></span>
+            <span class="lang">Luau</span>
+          </div>
           <pre>local dist = (char.HumanoidRootPart.Position
   - lastPos).Magnitude
 if dist / dt > MAX_SPEED then
@@ -137,16 +149,23 @@ end</pre>
       </div>
 
       <div class="info-card">
-        <div class="info-icon">🔒</div>
-        <div class="info-tag">Validation</div>
+        <div class="info-row">
+          <div class="info-icon">🔒</div>
+          <div class="info-tag">Validation</div>
+        </div>
         <h3>Remote Event Validation</h3>
-        <p>Every client-fired RemoteEvent is treated as untrusted. All inputs are validated server-side — type, range, rate, and cooldown.</p>
+        <p>Every client-fired RemoteEvent is treated as untrusted. All inputs validated server-side — type, range, rate, and cooldown.</p>
         <div class="code-block">
-          <div class="code-header"><span>Luau</span></div>
+          <div class="code-header">
+            <span class="dot r"></span>
+            <span class="dot y"></span>
+            <span class="dot g"></span>
+            <span class="lang">Luau</span>
+          </div>
           <pre>RemoteEvent.OnServerEvent:Connect(
   function(player, data)
     if type(data) ~= "number" then return end
-    if data < 0 or data > MAX_VAL then return end
+    if data &lt; 0 or data &gt; MAX_VAL then return end
     -- safe to process
   end
 )</pre>
@@ -154,12 +173,19 @@ end</pre>
       </div>
 
       <div class="info-card">
-        <div class="info-icon">🛡️</div>
-        <div class="info-tag">Detection</div>
+        <div class="info-row">
+          <div class="info-icon">🛡️</div>
+          <div class="info-tag">Detection</div>
+        </div>
         <h3>Teleport Detection</h3>
         <p>Flags impossible position jumps between ticks. Catches players whose CFrame changes more than physics allows in one frame.</p>
         <div class="code-block">
-          <div class="code-header"><span>Luau</span></div>
+          <div class="code-header">
+            <span class="dot r"></span>
+            <span class="dot y"></span>
+            <span class="dot g"></span>
+            <span class="lang">Luau</span>
+          </div>
           <pre>local jump = (newPos - oldPos).Magnitude
 if jump > MAX_JUMP_DIST then
   flagPlayer(player, "Teleport")
@@ -168,12 +194,19 @@ end</pre>
       </div>
 
       <div class="info-card">
-        <div class="info-icon">📊</div>
-        <div class="info-tag">Logging</div>
+        <div class="info-row">
+          <div class="info-icon">📊</div>
+          <div class="info-tag">Logging</div>
+        </div>
         <h3>Anti-Cheat Logging</h3>
         <p>All flag events logged with timestamp, player ID, violation type, and severity. Multiple flags trigger auto-kick and admin alerts.</p>
         <div class="code-block">
-          <div class="code-header"><span>Luau</span></div>
+          <div class="code-header">
+            <span class="dot r"></span>
+            <span class="dot y"></span>
+            <span class="dot g"></span>
+            <span class="lang">Luau</span>
+          </div>
           <pre>local function flagPlayer(p, reason)
   logs[p.UserId] = logs[p.UserId] or {}
   table.insert(logs[p.UserId], {
@@ -190,6 +223,7 @@ end</pre>
   <!-- SKILLS -->
   <section id="skills" class="section">
     <div class="section-header">
+      <div class="eyebrow">Proficiency</div>
       <h2>Skills</h2>
       <p>Current proficiency across security domains.</p>
     </div>
@@ -240,8 +274,9 @@ end</pre>
   </section>
 
   <!-- CONTACT -->
-  <section id="contact" class="section">
+  <section id="contact" class="section contact-section">
     <div class="contact-wrap">
+      <div class="hero-tag">Open to opportunities</div>
       <h2>Let's work together.</h2>
       <p>Available for Roblox security roles and cybersecurity projects.</p>
       <div class="contact-btns">
@@ -252,7 +287,10 @@ end</pre>
   </section>
 
   <footer>
-    <span class="logo">CyberSec</span>
+    <div class="logo">
+      <div class="logo-mark">CS</div>
+      CyberSec
+    </div>
     <span class="footer-copy">Built with no frameworks. Just skill.</span>
   </footer>
 

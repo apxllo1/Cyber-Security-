@@ -244,11 +244,13 @@ async function analyzeURL() {
 function deobfuscate() {
   const input = document.getElementById('deobfInput').value.trim();
   if (!input) { setResult('deobfResult', 'Paste obfuscated code above.', 'warn'); return; }
+
+  const obfType = detectObfuscator(input);
+  const loaders = extractLoaders(input);
   let code = input;
   const steps = [];
-  const obfType = detectObfuscator(code);
 
-  for (let pass = 0; pass < 12; pass++) {
+  for (let pass = 0; pass < 15; pass++) {
     const prev = code;
 
     // URL decode
@@ -256,69 +258,115 @@ function deobfuscate() {
 
     // HTML entities
     const ent = code
-      .replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(+n))
-      .replace(/&#x([0-9a-fA-F]+);/g,(_,h)=>String.fromCharCode(parseInt(h,16)))
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
       .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");
     if (ent !== code) { steps.push('HTML entities'); code = ent; }
 
     // Unicode \uXXXX
-    const uni = code.replace(/\\u([0-9a-fA-F]{4})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
+    const uni = code.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
     if (uni !== code) { steps.push('Unicode \\u'); code = uni; }
 
     // Hex \xXX
-    const hx = code.replace(/\\x([0-9a-fA-F]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
+    const hx = code.replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
     if (hx !== code) { steps.push('Hex \\x'); code = hx; }
 
-    // JS String.fromCharCode(...)
-    const sfc = code.replace(/String\.fromCharCode\s*\(([^)]+)\)/g,(_,ns)=>{
-      try { return ns.split(',').map(n=>String.fromCharCode(+n.trim())).join(''); } catch { return _; }
+    // JS String.fromCharCode(n,n,...)
+    const sfc = code.replace(/String\.fromCharCode\s*\(([^)]+)\)/g, (_, ns) => {
+      try { return ns.split(',').map(n => String.fromCharCode(+n.trim())).join(''); } catch { return _; }
     });
     if (sfc !== code) { steps.push('String.fromCharCode'); code = sfc; }
 
-    // Lua string.char(n,n,...) — Lua Armor, custom encoders
-    const lsc = code.replace(/string\.char\s*\(([0-9,\s]+)\)/g, (_,ns) => {
+    // Lua string.char(n,n,...) — handles multiline, Lua Armor, custom encoders
+    const lsc = code.replace(/string\.char\s*\(([\d,\s\n\r]+)\)/gm, (_, ns) => {
       try {
-        const nums = ns.split(',').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
-        if (nums.length && nums.every(n=>n>=0&&n<=255)) return '"'+String.fromCharCode(...nums)+'"';
+        const nums = ns.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+        if (nums.length >= 1 && nums.every(n => n >= 0 && n <= 255))
+          return '"' + String.fromCharCode(...nums).replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"';
         return _;
       } catch { return _; }
     });
     if (lsc !== code) { steps.push('Lua string.char'); code = lsc; }
 
-    // Lua decimal escapes \DDD — only when many are present (obfuscation indicator)
-    const luaDecCount = (code.match(/\\[0-9]{1,3}/g)||[]).length;
+    // Lua decimal string escapes \DDD (triggered when 4+ sequences — clear obfuscation signal)
+    const luaDecCount = (code.match(/\\[0-9]{1,3}/g) || []).length;
     if (luaDecCount >= 4) {
-      const luaDec = code.replace(/\\([0-9]{1,3})/g, (_,n) => {
+      const luaDec = code.replace(/\\([0-9]{1,3})/g, (_, n) => {
         const c = parseInt(n);
         return (c >= 32 && c <= 126) ? String.fromCharCode(c) : _;
       });
-      if (luaDec !== code) { steps.push('Lua \\DDD escapes'); code = luaDec; }
+      if (luaDec !== code) { steps.push('Lua \\DDD decimal escapes'); code = luaDec; }
     }
 
-    // table.concat({65,66,...}) reassembly
-    const tbl = code.replace(/table\.concat\s*\(\s*\{([0-9,\s]+)\}\s*(?:,\s*['"]['"]\s*)?\)/g, (_,ns) => {
+    // table.concat({n,n,...}) byte array → string
+    const tbl = code.replace(/table\.concat\s*\(\s*\{([\d,\s]+)\}\s*(?:,\s*["'].*?["'])?\s*\)/g, (_, ns) => {
       try {
-        const nums = ns.split(',').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
-        if (nums.length && nums.every(n=>n>0&&n<=127)) return '"'+String.fromCharCode(...nums)+'"';
+        const nums = ns.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+        if (nums.length >= 2 && nums.every(n => n > 0 && n <= 127))
+          return '"' + String.fromCharCode(...nums) + '"';
         return _;
       } catch { return _; }
     });
-    if (tbl !== code) { steps.push('table.concat decode'); code = tbl; }
+    if (tbl !== code) { steps.push('table.concat byte array'); code = tbl; }
 
-    // atob() calls
-    const ab = code.replace(/atob\s*\(['"`]([A-Za-z0-9+/=]+)['"`]\)/g,(_,b)=>{try{return atob(b);}catch{return _;}});
+    // atob() inline calls
+    const ab = code.replace(/\batob\s*\(['"`]([A-Za-z0-9+/=]+)['"`]\)/g,
+      (_, b) => { try { return atob(b); } catch { return _; } });
     if (ab !== code) { steps.push('atob()'); code = ab; }
 
-    // Dean Edwards packer: eval(function(p,a,c,k,e,d){...})
-    if (/eval\(function\(p,a,c,k,e/.test(code)) {
-      steps.push('Dean Edwards packer detected — eval() wrapper present');
+    // Prometheus-style: local T={"s1","s2",...}  expand T[1]→"s1"
+    const ptMatch = code.match(/\blocal\s+(\w+)\s*=\s*\{(\s*"[^"]*"\s*(?:,\s*"[^"]*"\s*){4,})\}/);
+    if (ptMatch) {
+      try {
+        const [, tName, tBody] = ptMatch;
+        const entries = [...tBody.matchAll(/"([^"]*)"/g)].map(m => m[1]);
+        if (entries.length >= 5) {
+          const re = new RegExp(tName + '\\s*\\[\\s*(\\d+)\\s*\\]', 'g');
+          const expanded = code.replace(re, (_, i) => {
+            const val = entries[parseInt(i) - 1];
+            return val !== undefined ? `"${val}"` : _;
+          });
+          if (expanded !== code) { steps.push('Prometheus string table'); code = expanded; }
+        }
+      } catch {}
     }
 
-    // JS hex array obfuscation: _0x1234=['a','b',...] → readable strings
-    const hexArr = code.replace(/_0x[0-9a-f]+\s*\(\s*'([^']+)'\s*\)/g, (_,s) => {
-      try { return '"' + atob(s) + '"'; } catch { return '"' + s + '"'; }
-    });
-    if (hexArr !== code) { steps.push('Hex array obfuscation'); code = hexArr; }
+    // XOR-decrypted string.char: string.char(bit.bxor(n,key),...) — try constant key extraction
+    const xorMatch = code.match(/string\.char\s*\(\s*(?:bit\.bxor\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)[\s,]*){3,}\)/);
+    if (xorMatch) {
+      try {
+        const xorNums = [...code.matchAll(/bit\.bxor\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/g)];
+        if (xorNums.length >= 3) {
+          const decoded = xorNums.map(m => String.fromCharCode(parseInt(m[1]) ^ parseInt(m[2]))).join('');
+          if (/[\x20-\x7E]{4,}/.test(decoded)) {
+            code = code.replace(/string\.char\s*\((?:\s*bit\.bxor\s*\(\s*\d+\s*,\s*\d+\s*\)\s*,?\s*)+\)/g, `"${decoded}"`);
+            steps.push('XOR string.char decode');
+          }
+        }
+      } catch {}
+    }
+
+    // obfuscator.io hex-array: build string table then inline references
+    const hexArrM = code.match(/(_0x[0-9a-f]+)\s*=\s*\[([^\]]+)\]/i);
+    if (hexArrM) {
+      try {
+        const [, arrName, body] = hexArrM;
+        const entries = [...body.matchAll(/'([^']*)'/g)].map(m => m[1]);
+        if (entries.length >= 3) {
+          const escapedName = arrName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const re = new RegExp(escapedName + '\\s*\\(\\s*(\\d+)\\s*\\)', 'g');
+          const exp = code.replace(re, (_, i) => {
+            const v = entries[parseInt(i)]; return v !== undefined ? `"${v}"` : _;
+          });
+          if (exp !== code) { steps.push('obfuscator.io hex array'); code = exp; }
+        }
+      } catch {}
+    }
+
+    // Dean Edwards packer — flag it (can't safely eval but mark)
+    if (pass === 0 && /eval\s*\(\s*function\s*\(\s*p\s*,\s*a\s*,\s*c\s*,\s*k\s*,\s*e/.test(code)) {
+      steps.push('Dean Edwards Packer — requires eval to fully unpack (shown raw)');
+    }
 
     // Base64 blob (pass 0 only)
     if (pass === 0 && /^[A-Za-z0-9+/]+=*$/.test(code.trim()) && code.trim().length > 20) {
@@ -327,9 +375,9 @@ function deobfuscate() {
 
     // Hex blob (pass 0 only)
     if (pass === 0) {
-      const stripped = code.replace(/[\s\n]/g,'');
-      if (/^[0-9a-fA-F]+$/.test(stripped) && stripped.length > 20 && stripped.length%2===0) {
-        const d = stripped.match(/.{2}/g).map(h=>String.fromCharCode(parseInt(h,16))).join('');
+      const stripped = code.replace(/[\s\n]/g, '');
+      if (/^[0-9a-fA-F]+$/.test(stripped) && stripped.length > 20 && stripped.length % 2 === 0) {
+        const d = stripped.match(/.{2}/g).map(h => String.fromCharCode(parseInt(h, 16))).join('');
         if (/[\x20-\x7E]{10,}/.test(d)) { steps.push('Hex blob'); code = d; }
       }
     }
@@ -337,40 +385,172 @@ function deobfuscate() {
     if (code === prev) break;
   }
 
-  const lang = detectLang(code);
+  const isVM = obfType && /VM|bytecode|Luraph|IronBrew|Moonsec/i.test(obfType);
+  const vmStrings = isVM ? extractBytecodeStrings(input) : [];
+  const lang  = detectLang(code);
   const risks = detectRisks(code);
-  const obfLine = obfType ? `\nObfuscator: ${obfType}` : '';
-  const vmWarn  = obfType && obfType.includes('VM')
-    ? '\n⚠️  VM-based obfuscation — bytecode is embedded & encrypted.\n   Full deobfuscation requires running the Lua VM. Partial decode only.\n'
-    : '';
+  const out   = [];
 
-  let out;
-  if (steps.length) {
-    out = `=== DECODED (${steps.length} pass${steps.length>1?'es':''}) ===${obfLine}\nLayers:   ${steps.join(' → ')}\nLanguage: ${lang}${vmWarn}\n\n`;
-  } else {
-    out = `=== ANALYSIS ===${obfLine}\nLanguage: ${lang}${vmWarn||'\nNo standard encoding layers detected.\nCode may use custom encryption, a VM, or be plain code.\n'}\n\n`;
+  // ── Obfuscator banner ──
+  if (obfType) {
+    out.push('=== OBFUSCATOR IDENTIFIED ===');
+    out.push(`Type:     ${obfType}`);
+    if (isVM) {
+      out.push('⚠️  VM-based: original Lua was compiled to bytecode, then encrypted.');
+      out.push('   In-browser decode is partial — VM requires native Lua execution.');
+      out.push('   Loader URLs and extracted strings are shown below.');
+    }
+    out.push('');
   }
-  out += '=== OUTPUT ===\n' + code;
-  if (risks.length) out += '\n\n=== ⚠️ RISK INDICATORS ===\n' + risks.map(r=>'  🚨 '+r).join('\n');
-  else if (steps.length) out += '\n\n✅ No dangerous patterns in decoded output.';
-  setResult('deobfResult', out);
+
+  // ── Loaders / remote sources ──
+  if (loaders.length) {
+    out.push('=== LOADERS / REMOTE CODE SOURCES ===');
+    loaders.forEach(l => out.push(l));
+    out.push('');
+  }
+
+  // ── Strings extracted from VM bytecode ──
+  if (vmStrings.length) {
+    out.push(`=== STRINGS EXTRACTED FROM BYTECODE (${vmStrings.length}) ===`);
+    vmStrings.forEach(s => out.push(`  "${s}"`));
+    out.push('');
+  }
+
+  // ── Decode result ──
+  if (steps.length) {
+    out.push(`=== DECODED — ${steps.length} layer${steps.length > 1 ? 's' : ''} removed ===`);
+    out.push(`Passes:   ${steps.join(' → ')}`);
+    out.push(`Language: ${lang}`);
+    out.push('');
+    out.push(code);
+  } else if (isVM && !steps.length) {
+    out.push('=== RAW INPUT (VM-encrypted — not decodable in browser) ===');
+    out.push(code.length > 1400 ? code.slice(0, 1400) + `\n\n... [${code.length - 1400} more chars truncated]` : code);
+  } else if (!obfType && !loaders.length) {
+    out.push('=== OUTPUT ===');
+    out.push(`Language: ${lang}`);
+    out.push('No encoding layers found. Code appears plain or uses unsupported custom crypto.');
+    out.push('');
+    out.push(code);
+  }
+
+  // ── Risks ──
+  if (risks.length) {
+    out.push('\n=== ⚠️ RISK INDICATORS ===');
+    risks.forEach(r => out.push('  🚨 ' + r));
+  } else if (steps.length || loaders.length) {
+    out.push('\n✅ No dangerous patterns detected in output.');
+  }
+
+  setResult('deobfResult', out.join('\n'));
+}
+
+// Extract remote loader targets from code
+function extractLoaders(code) {
+  const results = [];
+  let m;
+
+  // game:HttpGet / HttpService:GetAsync / PostAsync
+  const httpRe = /(?:game|HttpService|service)\s*[:.]\s*(?:HttpGet|GetAsync|PostAsync)\s*\(\s*["']([^"']+)["']/gi;
+  while ((m = httpRe.exec(code)) !== null) results.push(`🌐 HttpGet URL: ${m[1]}`);
+
+  // syn.request / http.request (exploit HTTP libraries)
+  const synRe = /(?:syn|http|request|fluxus|krnl)\s*\.?\s*(?:request|GET|POST)\s*\(\s*\{[^}]*[Uu]rl\s*=\s*["']([^"']+)["']/gi;
+  while ((m = synRe.exec(code)) !== null) results.push(`🔗 HTTP request URL: ${m[1]}`);
+
+  // loadstring(...)()
+  const lsRe = /(?:pcall\s*\(\s*)?loadstring\s*\(([^)]{1,500})\)\s*\)?\s*(?:\(\))?/g;
+  while ((m = lsRe.exec(code)) !== null) {
+    const src = m[1].trim();
+    if (/^["']/.test(src)) results.push(`📜 loadstring literal: ${src.slice(0, 160)}`);
+    else results.push(`📜 loadstring(${src.slice(0, 120)})`);
+  }
+
+  // require with Roblox asset ID
+  const reqRe = /\brequire\s*\(\s*(\d{7,13})\s*\)/g;
+  while ((m = reqRe.exec(code)) !== null) results.push(`📦 require() Roblox asset ID: ${m[1]}`);
+
+  // dofile / loadfile
+  const dfRe = /\b(dofile|loadfile)\s*\(\s*["']([^"']+)["']\)/gi;
+  while ((m = dfRe.exec(code)) !== null) results.push(`📂 ${m[1]}: ${m[2]}`);
+
+  // Raw https?:// strings not already captured
+  const urlRe = /["'](https?:\/\/[^"'\s]{8,})["']/g;
+  const seen = new Set(results.map(r => r));
+  while ((m = urlRe.exec(code)) !== null) {
+    if (!results.some(r => r.includes(m[1]))) results.push(`🔍 URL in code: ${m[1]}`);
+  }
+
+  return results;
+}
+
+// Extract readable strings from VM bytecode blob
+function extractBytecodeStrings(code) {
+  const found = new Set();
+  let m;
+
+  // Decode long string literals (bytecode stored as escaped string)
+  const longRe = /["']([^"']{60,})["']/g;
+  while ((m = longRe.exec(code)) !== null) {
+    let raw = m[1];
+    raw = raw.replace(/\\([0-9]{1,3})/g, (_, n) => {
+      const c = parseInt(n);
+      return (c >= 32 && c <= 126) ? String.fromCharCode(c) : '\x00';
+    });
+    const runs = raw.match(/[\x20-\x7E]{5,}/g) || [];
+    runs.forEach(r => { if (/[a-zA-Z]{3}/.test(r) && r.length < 200) found.add(r.trim()); });
+  }
+
+  // Short visible string literals
+  const shortRe = /["']([a-zA-Z_][\w./: -]{3,80})["']/g;
+  while ((m = shortRe.exec(code)) !== null) found.add(m[1]);
+
+  // Filter Lua/VM boilerplate keywords
+  const noise = new Set(['local','function','return','end','then','else','true','false','nil','and','or','not','repeat','until','for','while','do','break','in']);
+  return [...found].filter(s => !noise.has(s) && s.length > 3).slice(0, 45);
 }
 
 function detectObfuscator(code) {
-  // Named markers
-  if (/--\s*\[\[.*?Luraph/i.test(code) || /Luraph/i.test(code)) return 'Luraph (Lua VM obfuscator)';
-  if (/--\s*\[\[.*?IronBrew/i.test(code) || /IronBrew/i.test(code)) return 'IronBrew 2 (Lua VM obfuscator)';
-  if (/--\s*\[\[.*?Moonsec/i.test(code) || /Moonsec/i.test(code)) return 'Moonsec (Lua VM obfuscator)';
-  if (/--\s*\[\[.*?Prometheus/i.test(code) || /Prometheus/i.test(code)) return 'Prometheus (Lua obfuscator)';
-  if (/LuaArmor|Lua Armor/i.test(code)) return 'Lua Armor';
-  // Structural fingerprints
-  if (/^local\s+\w\s*=\s*"[^"]{300,}"/.test(code) && /bit\.(b?xor|band|bor|rshift)/.test(code)) return 'Luraph / Moonsec (VM obfuscator — long encrypted bytecode)';
-  if (/local\s+\w+\s*=\s*\{[^}]{800,}\}/.test(code) && /loadstring|load\s*\(/.test(code)) return 'Unknown Lua VM obfuscator';
-  if (/string\.char\s*\([0-9,\s]{60,}\)/.test(code)) return 'Lua Armor / string.char chain obfuscator';
+  // Named comments / string markers
+  if (/Luraph/i.test(code))                         return 'Luraph (Lua VM obfuscator)';
+  if (/IronBrew/i.test(code))                        return 'IronBrew 2 (Lua VM obfuscator)';
+  if (/Moonsec/i.test(code))                         return 'Moonsec (Lua VM obfuscator)';
+  if (/Prometheus/i.test(code))                      return 'Prometheus (Lua string-table obfuscator)';
+  if (/LuaSeel|Lua\s*Seel/i.test(code))             return 'LuaSeel (Lua obfuscator)';
+  if (/LuaArmor|Lua\s*Armor/i.test(code))           return 'Lua Armor (string.char obfuscator)';
+  if (/Synapse\s*Xen|SynXen/i.test(code))          return 'Synapse Xen (VM-based exploit obfuscator)';
+  if (/Comet\s*Obf/i.test(code))                    return 'Comet obfuscator';
+  if (/ByteCode|Bytecode\s*VM/i.test(code))         return 'Generic Lua Bytecode VM';
+  if (/obfuscated by obfuscator\.io/i.test(code))   return 'obfuscator.io (JS)';
+
+  // Luraph / Moonsec structural: long bytecode string + bit library ops
+  if (/^local\s+\w\s*=\s*["'][^"']{300,}["']/.test(code) && /bit\.(b?xor|band|bor|rshift|lshift)/.test(code)) {
+    if (/\[0\]\s*=/.test(code)) return 'Moonsec v3 (VM — 0-indexed opcode dispatch)';
+    if (/\[1\]\s*=\s*function/.test(code)) return 'Moonsec v2 (VM)';
+    return 'Luraph / IronBrew (VM — encrypted Lua bytecode)';
+  }
+
+  // IronBrew: getfenv + large opcode table
+  if (/local\s+\w+\s*=\s*\{[^}]{500,}\}/.test(code) && /getfenv|setfenv/.test(code)) return 'IronBrew (Lua VM)';
+
+  // Generic VM: large table + load
+  if (/local\s+\w+\s*=\s*\{[^}]{800,}\}/.test(code) && /\b(?:loadstring|load)\s*\(/.test(code)) return 'Custom Lua VM obfuscator';
+
+  // Lua Armor: many string.char chains
+  if (/(string\.char\s*\([\d,\s]{30,}\)[\s.]*){2,}/.test(code)) return 'Lua Armor (string.char chain)';
+
+  // Prometheus: string table at top
+  if (/^local\s+\w+\s*=\s*\{\s*"[^"]+"\s*(?:,\s*"[^"]+"\s*){4,}\}/m.test(code)) return 'Prometheus (string table)';
+
+  // Heavy \DDD decimal encoding
+  if ((code.match(/\\[0-9]{1,3}/g) || []).length > 30) return 'Lua decimal-escape obfuscator';
+
   // JS obfuscators
-  if (/_0x[0-9a-f]{4,}\s*=\s*\[/.test(code)) return 'obfuscator.io / js-obfuscator (hex array)';
-  if (/p,a,c,k,e,d/.test(code) && /eval\(function/.test(code)) return 'Dean Edwards Packer (JS)';
-  if (/\['\\x[0-9a-f]{2}'\]/.test(code) && /eval\s*\(/.test(code)) return 'JS string-escape obfuscator';
+  if (/_0x[0-9a-f]{4,}\s*=\s*\[/.test(code))           return 'obfuscator.io / js-obfuscator (hex array)';
+  if (/eval\s*\(\s*function\s*\(\s*p\s*,\s*a\s*,\s*c\s*,\s*k\s*,\s*e/.test(code)) return 'Dean Edwards Packer (JS)';
+  if (/\['\\x[0-9a-f]{2}'\]/.test(code) && /eval/.test(code)) return 'JS string-escape obfuscator';
+
   return null;
 }
 
@@ -383,15 +563,17 @@ function detectRisks(code) {
   if (/\bfetch\s*\(|XMLHttpRequest/.test(code))          r.push('Network request — possible data exfiltration');
   if (/localStorage|sessionStorage/.test(code))          r.push('Storage access — credential/token theft');
   if (/document\.cookie/.test(code))                     r.push('Cookie access — session hijacking');
-  if (/\bloadstring\s*\(/.test(code))                    r.push('Lua loadstring — remote script execution');
+  if (/\bloadstring\s*\(/.test(code))                    r.push('loadstring — remote Lua script execution');
   if (/game:HttpGet|HttpService/.test(code))             r.push('Roblox HttpService — remote code loading');
-  if (/getfenv|setfenv/.test(code))                      r.push('Lua getfenv/setfenv — environment manipulation');
+  if (/getfenv|setfenv/.test(code))                      r.push('Lua getfenv/setfenv — sandbox escape');
+  if (/getrawmetatable|setrawmetatable/.test(code))      r.push('getrawmetatable — hook/bypass attempt');
   if (/os\.execute|subprocess|popen/.test(code))         r.push('System command execution');
   if (/import\s+os|import\s+subprocess/.test(code))      r.push('Python OS module — system access');
   if (/powershell|cmd\.exe|wscript/i.test(code))         r.push('Shell execution detected');
-  if (/bit\.b?xor/.test(code))                           r.push('Bitwise XOR in Lua — possible runtime decryption layer');
-  if (/discord\.com\/api\/webhooks/i.test(code))         r.push('Discord webhook URL — possible token/data exfiltration');
-  if (/require\s*\(.*load|load.*require/i.test(code))    r.push('Dynamic require + load — remote module execution');
+  if (/bit\.b?xor/.test(code))                           r.push('Bitwise XOR ops — runtime decryption layer present');
+  if (/discord\.com\/api\/webhooks/i.test(code))         r.push('Discord webhook — likely token/data exfiltration');
+  if (/\btoken\b.*\bsend\b|\bHeaders\b.*\bAuthorization\b/i.test(code)) r.push('Auth token in HTTP header — credential exfil');
+  if (/debug\.getinfo|debug\.getupvalue/i.test(code))   r.push('Lua debug lib — introspection/hook bypass');
   return r;
 }
 

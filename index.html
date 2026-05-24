@@ -4,91 +4,108 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CyberSec Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
   <header>
-    <div class="logo">
-      <span class="bracket">[</span>CYBERSEC<span class="bracket">]</span>
-    </div>
+    <div class="logo">CyberSec</div>
     <nav>
       <a href="#tools">Tools</a>
       <a href="#roblox">Roblox</a>
       <a href="#skills">Skills</a>
       <a href="#contact">Contact</a>
     </nav>
+    <div class="nav-badge">Available for hire</div>
   </header>
 
+  <!-- HERO -->
   <section class="hero">
-    <div class="terminal-window">
-      <div class="terminal-bar">
-        <span class="dot red"></span>
-        <span class="dot yellow"></span>
-        <span class="dot green"></span>
-        <span class="terminal-title">cybersec@dashboard:~</span>
+    <div class="hero-content">
+      <div class="hero-tag">Cybersecurity &amp; Roblox Security</div>
+      <h1>Protecting Games.<br />Detecting Threats.</h1>
+      <p class="hero-sub">Anti-cheat systems, exploit detection, network security tools — built and ready to deploy.</p>
+      <div class="hero-btns">
+        <a href="#tools" class="btn-primary">Explore Tools</a>
+        <a href="#roblox" class="btn-ghost">Roblox Security</a>
       </div>
-      <div class="terminal-body">
-        <p><span class="prompt">$</span> whoami</p>
-        <p class="output">Cybersecurity enthusiast | Roblox security developer</p>
-        <p><span class="prompt">$</span> skills --list</p>
-        <p class="output">exploit detection, hash analysis, network security, anti-cheat systems</p>
-        <p><span class="prompt">$</span> status</p>
-        <p class="output green">Available for hire <span class="blink">_</span></p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-card">
+        <span class="stat-num">4</span>
+        <span class="stat-label">Security Tools</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">4</span>
+        <span class="stat-label">Anti-Cheat Systems</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">100%</span>
+        <span class="stat-label">Server-Side Validated</span>
       </div>
     </div>
   </section>
 
-  <!-- TOOLS SECTION -->
+  <!-- TOOLS -->
   <section id="tools" class="section">
-    <h2 class="section-title"><span class="bracket">&gt;</span> Security Tools</h2>
+    <div class="section-header">
+      <h2>Security Tools</h2>
+      <p>Browser-based — no data ever leaves your device.</p>
+    </div>
     <div class="tools-grid">
 
-      <!-- Hash Checker -->
       <div class="tool-card">
+        <div class="tool-icon purple">&#35;</div>
         <h3>Hash Generator</h3>
-        <p class="tool-desc">Generate SHA-256, SHA-1, or SHA-512 hashes for any input string.</p>
+        <p class="tool-desc">Generate cryptographic hashes for any string using SHA-256, SHA-1, or SHA-512.</p>
         <textarea id="hashInput" placeholder="Enter text to hash..." rows="3"></textarea>
         <div class="btn-row">
-          <button onclick="genHash('SHA-256')">SHA-256</button>
-          <button onclick="genHash('SHA-1')">SHA-1</button>
-          <button onclick="genHash('SHA-512')">SHA-512</button>
+          <button class="btn-primary sm" onclick="genHash('SHA-256')">SHA-256</button>
+          <button class="btn-ghost sm" onclick="genHash('SHA-1')">SHA-1</button>
+          <button class="btn-ghost sm" onclick="genHash('SHA-512')">SHA-512</button>
         </div>
         <div class="result-box" id="hashResult">Output will appear here...</div>
-        <button class="copy-btn" onclick="copyResult('hashResult')">Copy</button>
+        <button class="btn-copy" onclick="copyResult('hashResult')">Copy result</button>
       </div>
 
-      <!-- Base64 Tool -->
       <div class="tool-card">
+        <div class="tool-icon blue">B</div>
         <h3>Base64 Encoder / Decoder</h3>
-        <p class="tool-desc">Encode or decode Base64 strings — useful for obfuscation analysis.</p>
+        <p class="tool-desc">Encode or decode Base64 — essential for obfuscation and payload analysis.</p>
         <textarea id="b64Input" placeholder="Enter text or Base64..." rows="3"></textarea>
         <div class="btn-row">
-          <button onclick="b64Encode()">Encode</button>
-          <button onclick="b64Decode()">Decode</button>
+          <button class="btn-primary sm" onclick="b64Encode()">Encode</button>
+          <button class="btn-ghost sm" onclick="b64Decode()">Decode</button>
         </div>
         <div class="result-box" id="b64Result">Output will appear here...</div>
-        <button class="copy-btn" onclick="copyResult('b64Result')">Copy</button>
+        <button class="btn-copy" onclick="copyResult('b64Result')">Copy result</button>
       </div>
 
-      <!-- Password Strength -->
       <div class="tool-card">
-        <h3>Password Strength Checker</h3>
-        <p class="tool-desc">Analyze password strength against common security rules.</p>
+        <div class="tool-icon pink">&#128274;</div>
+        <h3>Password Strength</h3>
+        <p class="tool-desc">Live analysis against length, complexity, and character class rules.</p>
         <input type="password" id="passInput" placeholder="Enter a password..." oninput="checkPass()" />
-        <div class="strength-bar-wrap">
-          <div class="strength-bar" id="strengthBar"></div>
+        <div class="strength-wrap">
+          <div class="strength-track">
+            <div class="strength-bar" id="strengthBar"></div>
+          </div>
+          <span class="strength-label" id="strengthLabel">—</span>
         </div>
         <div class="result-box" id="passResult">Enter a password above...</div>
       </div>
 
-      <!-- IP Info -->
       <div class="tool-card">
+        <div class="tool-icon green">&#127758;</div>
         <h3>IP Info Lookup</h3>
-        <p class="tool-desc">Look up geolocation and ISP info for any public IP address.</p>
-        <input type="text" id="ipInput" placeholder="e.g. 8.8.8.8  (leave blank for your IP)" />
+        <p class="tool-desc">Geolocation, ISP, and timezone data for any public IP address.</p>
+        <input type="text" id="ipInput" placeholder="e.g. 8.8.8.8  (leave blank = your IP)" />
         <div class="btn-row">
-          <button onclick="lookupIP()">Lookup</button>
-          <button onclick="myIP()">My IP</button>
+          <button class="btn-primary sm" onclick="lookupIP()">Lookup</button>
+          <button class="btn-ghost sm" onclick="myIP()">My IP</button>
         </div>
         <div class="result-box" id="ipResult">Output will appear here...</div>
       </div>
@@ -96,64 +113,71 @@
     </div>
   </section>
 
-  <!-- ROBLOX SECTION -->
+  <!-- ROBLOX -->
   <section id="roblox" class="section">
-    <h2 class="section-title"><span class="bracket">&gt;</span> Roblox Security</h2>
+    <div class="section-header">
+      <h2>Roblox Security</h2>
+      <p>Server-side anti-cheat techniques used in production games.</p>
+    </div>
     <div class="roblox-grid">
 
       <div class="info-card">
-        <div class="card-icon">⚡</div>
+        <div class="info-icon">⚡</div>
+        <div class="info-tag">Detection</div>
         <h3>Speed Hack Detection</h3>
-        <p>Server-side velocity checks compare actual character displacement per tick against the physics-allowed maximum. Clients cannot fake server-side math.</p>
-        <div class="code-snippet">
-          <pre>-- Server checks real distance traveled
-local dist = (char.HumanoidRootPart.Position
+        <p>Server-side velocity checks compare actual displacement per tick against the physics max. Clients can't fake server-side math.</p>
+        <div class="code-block">
+          <div class="code-header"><span>Luau</span></div>
+          <pre>local dist = (char.HumanoidRootPart.Position
   - lastPos).Magnitude
-if dist / dt &gt; MAX_SPEED then
+if dist / dt > MAX_SPEED then
   flagPlayer(player, "SpeedHack")
 end</pre>
         </div>
       </div>
 
       <div class="info-card">
-        <div class="card-icon">🔒</div>
+        <div class="info-icon">🔒</div>
+        <div class="info-tag">Validation</div>
         <h3>Remote Event Validation</h3>
-        <p>Every RemoteEvent fired by a client is treated as untrusted. All inputs are validated server-side — type, range, rate, and cooldown.</p>
-        <div class="code-snippet">
-          <pre>-- Never trust the client
-RemoteEvent.OnServerEvent:Connect(
+        <p>Every client-fired RemoteEvent is treated as untrusted. All inputs are validated server-side — type, range, rate, and cooldown.</p>
+        <div class="code-block">
+          <div class="code-header"><span>Luau</span></div>
+          <pre>RemoteEvent.OnServerEvent:Connect(
   function(player, data)
     if type(data) ~= "number" then return end
-    if data &lt; 0 or data &gt; MAX_VAL then return end
-    -- safe to use data
+    if data < 0 or data > MAX_VAL then return end
+    -- safe to process
   end
 )</pre>
         </div>
       </div>
 
       <div class="info-card">
-        <div class="card-icon">🛡️</div>
+        <div class="info-icon">🛡️</div>
+        <div class="info-tag">Detection</div>
         <h3>Teleport Detection</h3>
-        <p>Detects impossible position jumps between ticks. Flags players whose CFrame changes by more than the physics engine allows in one frame.</p>
-        <div class="code-snippet">
-          <pre>-- Flag impossible position jumps
-local jump = (newPos - oldPos).Magnitude
-if jump &gt; MAX_JUMP_DIST then
+        <p>Flags impossible position jumps between ticks. Catches players whose CFrame changes more than physics allows in one frame.</p>
+        <div class="code-block">
+          <div class="code-header"><span>Luau</span></div>
+          <pre>local jump = (newPos - oldPos).Magnitude
+if jump > MAX_JUMP_DIST then
   flagPlayer(player, "Teleport")
 end</pre>
         </div>
       </div>
 
       <div class="info-card">
-        <div class="card-icon">📊</div>
+        <div class="info-icon">📊</div>
+        <div class="info-tag">Logging</div>
         <h3>Anti-Cheat Logging</h3>
-        <p>All flag events are logged with timestamp, player ID, violation type, and severity. Multiple flags trigger automatic kicks and admin alerts.</p>
-        <div class="code-snippet">
+        <p>All flag events logged with timestamp, player ID, violation type, and severity. Multiple flags trigger auto-kick and admin alerts.</p>
+        <div class="code-block">
+          <div class="code-header"><span>Luau</span></div>
           <pre>local function flagPlayer(p, reason)
   logs[p.UserId] = logs[p.UserId] or {}
   table.insert(logs[p.UserId], {
-    reason = reason,
-    time   = os.time()
+    reason = reason, time = os.time()
   })
   checkThreshold(p)
 end</pre>
@@ -163,51 +187,73 @@ end</pre>
     </div>
   </section>
 
-  <!-- SKILLS SECTION -->
+  <!-- SKILLS -->
   <section id="skills" class="section">
-    <h2 class="section-title"><span class="bracket">&gt;</span> Skills</h2>
-    <div class="skills-grid">
+    <div class="section-header">
+      <h2>Skills</h2>
+      <p>Current proficiency across security domains.</p>
+    </div>
+    <div class="skills-wrap">
       <div class="skill-item">
-        <span class="skill-label">Hash Analysis</span>
-        <div class="skill-track"><div class="skill-fill" style="width:85%"></div></div>
+        <div class="skill-meta">
+          <span class="skill-label">Roblox Anti-Cheat</span>
+          <span class="skill-pct">90%</span>
+        </div>
+        <div class="skill-track"><div class="skill-fill purple" style="width:90%"></div></div>
       </div>
       <div class="skill-item">
-        <span class="skill-label">Network Security</span>
-        <div class="skill-track"><div class="skill-fill" style="width:70%"></div></div>
+        <div class="skill-meta">
+          <span class="skill-label">Luau / Roblox Studio</span>
+          <span class="skill-pct">88%</span>
+        </div>
+        <div class="skill-track"><div class="skill-fill blue" style="width:88%"></div></div>
       </div>
       <div class="skill-item">
-        <span class="skill-label">Roblox Anti-Cheat</span>
-        <div class="skill-track"><div class="skill-fill" style="width:90%"></div></div>
+        <div class="skill-meta">
+          <span class="skill-label">Hash Analysis</span>
+          <span class="skill-pct">85%</span>
+        </div>
+        <div class="skill-track"><div class="skill-fill purple" style="width:85%"></div></div>
       </div>
       <div class="skill-item">
-        <span class="skill-label">Exploit Detection</span>
-        <div class="skill-track"><div class="skill-fill" style="width:80%"></div></div>
+        <div class="skill-meta">
+          <span class="skill-label">Exploit Detection</span>
+          <span class="skill-pct">80%</span>
+        </div>
+        <div class="skill-track"><div class="skill-fill pink" style="width:80%"></div></div>
       </div>
       <div class="skill-item">
-        <span class="skill-label">Luau / Roblox Studio</span>
-        <div class="skill-track"><div class="skill-fill" style="width:88%"></div></div>
+        <div class="skill-meta">
+          <span class="skill-label">Network Security</span>
+          <span class="skill-pct">70%</span>
+        </div>
+        <div class="skill-track"><div class="skill-fill blue" style="width:70%"></div></div>
       </div>
       <div class="skill-item">
-        <span class="skill-label">Python</span>
-        <div class="skill-track"><div class="skill-fill" style="width:65%"></div></div>
+        <div class="skill-meta">
+          <span class="skill-label">Python</span>
+          <span class="skill-pct">65%</span>
+        </div>
+        <div class="skill-track"><div class="skill-fill green" style="width:65%"></div></div>
       </div>
     </div>
   </section>
 
-  <!-- CONTACT SECTION -->
+  <!-- CONTACT -->
   <section id="contact" class="section">
-    <h2 class="section-title"><span class="bracket">&gt;</span> Contact</h2>
-    <div class="contact-box">
-      <p>Available for Roblox security roles and general cybersecurity projects.</p>
-      <div class="contact-links">
-        <a href="https://discord.com" target="_blank" class="contact-btn">Discord</a>
-        <a href="https://github.com/apxllo1" target="_blank" class="contact-btn">GitHub</a>
+    <div class="contact-wrap">
+      <h2>Let's work together.</h2>
+      <p>Available for Roblox security roles and cybersecurity projects.</p>
+      <div class="contact-btns">
+        <a href="https://discord.com" target="_blank" class="btn-primary">Discord</a>
+        <a href="https://github.com/apxllo1" target="_blank" class="btn-ghost">GitHub</a>
       </div>
     </div>
   </section>
 
   <footer>
-    <p><span class="bracket">[</span>CYBERSEC<span class="bracket">]</span> &mdash; Built with no frameworks. Just skill.</p>
+    <span class="logo">CyberSec</span>
+    <span class="footer-copy">Built with no frameworks. Just skill.</span>
   </footer>
 
   <script src="script.js"></script>

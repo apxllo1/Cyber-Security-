@@ -44,6 +44,8 @@ function checkPass() {
     bar.style.width = '0';
     res.textContent = 'Enter a password above...';
     res.style.color = '';
+    const lbl = document.getElementById('strengthLabel');
+    if (lbl) { lbl.textContent = '—'; lbl.style.color = ''; }
     return;
   }
 
@@ -75,8 +77,11 @@ function checkPass() {
   bar.style.background = color;
   res.style.color = color;
 
-  const missing = failed.length ? `\nMissing: ${failed.join(', ')}` : '\nAll checks passed!';
-  res.textContent = `Strength: ${label} (${pct}%)${missing}`;
+  const labelEl = document.getElementById('strengthLabel');
+  if (labelEl) { labelEl.textContent = label; labelEl.style.color = color; }
+
+  const missing = failed.length ? `Missing: ${failed.join(', ')}` : 'All checks passed!';
+  res.textContent = `${label} (${pct}%) — ${missing}`;
 }
 
 // ===== IP LOOKUP =====

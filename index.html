@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CyberSec Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <span class="bracket">[</span>CYBERSEC<span class="bracket">]</span>
+    </div>
+    <nav>
+      <a href="#tools">Tools</a>
+      <a href="#roblox">Roblox</a>
+      <a href="#skills">Skills</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="terminal-window">
+      <div class="terminal-bar">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+        <span class="terminal-title">cybersec@dashboard:~</span>
+      </div>
+      <div class="terminal-body">
+        <p><span class="prompt">$</span> whoami</p>
+        <p class="output">Cybersecurity enthusiast | Roblox security developer</p>
+        <p><span class="prompt">$</span> skills --list</p>
+        <p class="output">exploit detection, hash analysis, network security, anti-cheat systems</p>
+        <p><span class="prompt">$</span> status</p>
+        <p class="output green">Available for hire <span class="blink">_</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOOLS SECTION -->
+  <section id="tools" class="section">
+    <h2 class="section-title"><span class="bracket">&gt;</span> Security Tools</h2>
+    <div class="tools-grid">
+
+      <!-- Hash Checker -->
+      <div class="tool-card">
+        <h3>Hash Generator</h3>
+        <p class="tool-desc">Generate SHA-256, SHA-1, or SHA-512 hashes for any input string.</p>
+        <textarea id="hashInput" placeholder="Enter text to hash..." rows="3"></textarea>
+        <div class="btn-row">
+          <button onclick="genHash('SHA-256')">SHA-256</button>
+          <button onclick="genHash('SHA-1')">SHA-1</button>
+          <button onclick="genHash('SHA-512')">SHA-512</button>
+        </div>
+        <div class="result-box" id="hashResult">Output will appear here...</div>
+        <button class="copy-btn" onclick="copyResult('hashResult')">Copy</button>
+      </div>
+
+      <!-- Base64 Tool -->
+      <div class="tool-card">
+        <h3>Base64 Encoder / Decoder</h3>
+        <p class="tool-desc">Encode or decode Base64 strings — useful for obfuscation analysis.</p>
+        <textarea id="b64Input" placeholder="Enter text or Base64..." rows="3"></textarea>
+        <div class="btn-row">
+          <button onclick="b64Encode()">Encode</button>
+          <button onclick="b64Decode()">Decode</button>
+        </div>
+        <div class="result-box" id="b64Result">Output will appear here...</div>
+        <button class="copy-btn" onclick="copyResult('b64Result')">Copy</button>
+      </div>
+
+      <!-- Password Strength -->
+      <div class="tool-card">
+        <h3>Password Strength Checker</h3>
+        <p class="tool-desc">Analyze password strength against common security rules.</p>
+        <input type="password" id="passInput" placeholder="Enter a password..." oninput="checkPass()" />
+        <div class="strength-bar-wrap">
+          <div class="strength-bar" id="strengthBar"></div>
+        </div>
+        <div class="result-box" id="passResult">Enter a password above...</div>
+      </div>
+
+      <!-- IP Info -->
+      <div class="tool-card">
+        <h3>IP Info Lookup</h3>
+        <p class="tool-desc">Look up geolocation and ISP info for any public IP address.</p>
+        <input type="text" id="ipInput" placeholder="e.g. 8.8.8.8  (leave blank for your IP)" />
+        <div class="btn-row">
+          <button onclick="lookupIP()">Lookup</button>
+          <button onclick="myIP()">My IP</button>
+        </div>
+        <div class="result-box" id="ipResult">Output will appear here...</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ROBLOX SECTION -->
+  <section id="roblox" class="section">
+    <h2 class="section-title"><span class="bracket">&gt;</span> Roblox Security</h2>
+    <div class="roblox-grid">
+
+      <div class="info-card">
+        <div class="card-icon">⚡</div>
+        <h3>Speed Hack Detection</h3>
+        <p>Server-side velocity checks compare actual character displacement per tick against the physics-allowed maximum. Clients cannot fake server-side math.</p>
+        <div class="code-snippet">
+          <pre>-- Server checks real distance traveled
+local dist = (char.HumanoidRootPart.Position
+  - lastPos).Magnitude
+if dist / dt &gt; MAX_SPEED then
+  flagPlayer(player, "SpeedHack")
+end</pre>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div class="card-icon">🔒</div>
+        <h3>Remote Event Validation</h3>
+        <p>Every RemoteEvent fired by a client is treated as untrusted. All inputs are validated server-side — type, range, rate, and cooldown.</p>
+        <div class="code-snippet">
+          <pre>-- Never trust the client
+RemoteEvent.OnServerEvent:Connect(
+  function(player, data)
+    if type(data) ~= "number" then return end
+    if data &lt; 0 or data &gt; MAX_VAL then return end
+    -- safe to use data
+  end
+)</pre>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div class="card-icon">🛡️</div>
+        <h3>Teleport Detection</h3>
+        <p>Detects impossible position jumps between ticks. Flags players whose CFrame changes by more than the physics engine allows in one frame.</p>
+        <div class="code-snippet">
+          <pre>-- Flag impossible position jumps
+local jump = (newPos - oldPos).Magnitude
+if jump &gt; MAX_JUMP_DIST then
+  flagPlayer(player, "Teleport")
+end</pre>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div class="card-icon">📊</div>
+        <h3>Anti-Cheat Logging</h3>
+        <p>All flag events are logged with timestamp, player ID, violation type, and severity. Multiple flags trigger automatic kicks and admin alerts.</p>
+        <div class="code-snippet">
+          <pre>local function flagPlayer(p, reason)
+  logs[p.UserId] = logs[p.UserId] or {}
+  table.insert(logs[p.UserId], {
+    reason = reason,
+    time   = os.time()
+  })
+  checkThreshold(p)
+end</pre>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SKILLS SECTION -->
+  <section id="skills" class="section">
+    <h2 class="section-title"><span class="bracket">&gt;</span> Skills</h2>
+    <div class="skills-grid">
+      <div class="skill-item">
+        <span class="skill-label">Hash Analysis</span>
+        <div class="skill-track"><div class="skill-fill" style="width:85%"></div></div>
+      </div>
+      <div class="skill-item">
+        <span class="skill-label">Network Security</span>
+        <div class="skill-track"><div class="skill-fill" style="width:70%"></div></div>
+      </div>
+      <div class="skill-item">
+        <span class="skill-label">Roblox Anti-Cheat</span>
+        <div class="skill-track"><div class="skill-fill" style="width:90%"></div></div>
+      </div>
+      <div class="skill-item">
+        <span class="skill-label">Exploit Detection</span>
+        <div class="skill-track"><div class="skill-fill" style="width:80%"></div></div>
+      </div>
+      <div class="skill-item">
+        <span class="skill-label">Luau / Roblox Studio</span>
+        <div class="skill-track"><div class="skill-fill" style="width:88%"></div></div>
+      </div>
+      <div class="skill-item">
+        <span class="skill-label">Python</span>
+        <div class="skill-track"><div class="skill-fill" style="width:65%"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT SECTION -->
+  <section id="contact" class="section">
+    <h2 class="section-title"><span class="bracket">&gt;</span> Contact</h2>
+    <div class="contact-box">
+      <p>Available for Roblox security roles and general cybersecurity projects.</p>
+      <div class="contact-links">
+        <a href="https://discord.com" target="_blank" class="contact-btn">Discord</a>
+        <a href="https://github.com/apxllo1" target="_blank" class="contact-btn">GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><span class="bracket">[</span>CYBERSEC<span class="bracket">]</span> &mdash; Built with no frameworks. Just skill.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

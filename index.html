@@ -41,6 +41,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Contact</span>
       </button>
+      <button class="nav-item" data-page="advanced">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Advanced</span>
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -331,6 +335,123 @@ end</pre>
       </div>
     </div>
 
+    <!-- ADVANCED PAGE -->
+    <div class="page" id="page-advanced">
+      <div class="page-header">
+        <div class="page-logo-wrap purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="eyebrow">No backend · Live APIs · Real data</div>
+          <h2 class="page-title">Advanced Tools</h2>
+          <p class="page-sub">JWT analysis, DNS lookup, CVE search, subnet math, hash identification, and attack pattern scanning.</p>
+        </div>
+      </div>
+
+      <div class="tools-grid">
+
+        <!-- JWT DECODER -->
+        <div class="tool-card">
+          <div class="tool-icon purple">JWT</div>
+          <h3>JWT Decoder &amp; Analyzer</h3>
+          <p class="tool-desc">Decode header &amp; payload, flag weak algorithms (none, HS256), and check token expiry.</p>
+          <textarea id="jwtInput" placeholder="Paste a JWT token here..." rows="3"></textarea>
+          <button class="btn-primary sm" onclick="decodeJWT()">Analyze Token</button>
+          <div class="result-box" id="jwtResult">Output will appear here...</div>
+          <button class="btn-copy" onclick="copyResult('jwtResult')">Copy result</button>
+        </div>
+
+        <!-- DNS LOOKUP -->
+        <div class="tool-card">
+          <div class="tool-icon blue">DNS</div>
+          <h3>DNS Lookup</h3>
+          <p class="tool-desc">Query real DNS records via Cloudflare's DoH API — A, AAAA, MX, TXT, NS, CNAME.</p>
+          <input type="text" id="dnsInput" placeholder="e.g. github.com" />
+          <select id="dnsType" class="tool-select">
+            <option value="A">A — IPv4 address</option>
+            <option value="AAAA">AAAA — IPv6 address</option>
+            <option value="MX">MX — Mail server</option>
+            <option value="TXT">TXT — Text records / SPF / DKIM</option>
+            <option value="NS">NS — Nameservers</option>
+            <option value="CNAME">CNAME — Canonical name</option>
+          </select>
+          <button class="btn-primary sm" onclick="dnsLookup()">Lookup</button>
+          <div class="result-box" id="dnsResult">Output will appear here...</div>
+        </div>
+
+        <!-- PASSWORD GENERATOR -->
+        <div class="tool-card">
+          <div class="tool-icon green">PWD</div>
+          <h3>Password Generator</h3>
+          <p class="tool-desc">Cryptographically random passwords with live entropy calculation in bits.</p>
+          <div class="pass-controls">
+            <label class="pass-len-row">
+              <span>Length</span>
+              <input type="range" id="passLen" min="8" max="64" value="16" oninput="updateLenLabel(this)" />
+              <span id="passLenLabel" class="len-num">16</span>
+            </label>
+            <div class="check-row">
+              <label><input type="checkbox" id="passLow" checked /> a–z</label>
+              <label><input type="checkbox" id="passUp"  checked /> A–Z</label>
+              <label><input type="checkbox" id="passNum" checked /> 0–9</label>
+              <label><input type="checkbox" id="passSym" />        !@#…</label>
+            </div>
+          </div>
+          <button class="btn-primary sm" onclick="generatePassword()">Generate</button>
+          <div class="result-box" id="passGenResult">Output will appear here...</div>
+          <button class="btn-copy" onclick="copyResult('passGenResult')">Copy result</button>
+        </div>
+
+        <!-- CIDR CALCULATOR -->
+        <div class="tool-card">
+          <div class="tool-icon blue">IP</div>
+          <h3>CIDR / Subnet Calculator</h3>
+          <p class="tool-desc">Calculate network address, broadcast, usable hosts, and wildcard from any CIDR.</p>
+          <input type="text" id="cidrInput" placeholder="e.g. 192.168.1.0/24" />
+          <button class="btn-primary sm" onclick="calcCIDR()">Calculate</button>
+          <div class="result-box" id="cidrResult">Output will appear here...</div>
+        </div>
+
+        <!-- HASH IDENTIFIER -->
+        <div class="tool-card">
+          <div class="tool-icon pink">ID</div>
+          <h3>Hash Identifier</h3>
+          <p class="tool-desc">Identify MD5, SHA-1/256/512, bcrypt, NTLM, Argon2, scrypt, and more by pattern and length.</p>
+          <input type="text" id="hashIdInput" placeholder="Paste a hash string..." />
+          <button class="btn-primary sm" onclick="identifyHash()">Identify</button>
+          <div class="result-box" id="hashIdResult">Output will appear here...</div>
+        </div>
+
+        <!-- ATTACK PATTERN SCANNER -->
+        <div class="tool-card">
+          <div class="tool-icon pink">⚠</div>
+          <h3>Attack Pattern Scanner</h3>
+          <p class="tool-desc">Scan text for SQLi, XSS, path traversal, command injection, LDAP, and XML injection patterns.</p>
+          <textarea id="scanInput" placeholder="Paste user input, URL, or payload to scan..." rows="3"></textarea>
+          <button class="btn-primary sm" onclick="scanPatterns()">Scan</button>
+          <div class="result-box" id="scanResult">Output will appear here...</div>
+        </div>
+
+      </div>
+
+      <!-- CVE SEARCH — full width -->
+      <div class="tool-card cve-card" style="margin-top:18px;">
+        <div class="cve-header">
+          <div class="tool-icon purple">CVE</div>
+          <div>
+            <h3>CVE Search — NVD Database</h3>
+            <p class="tool-desc">Search the National Vulnerability Database in real time. Returns ID, CVSS score, severity, and description.</p>
+          </div>
+        </div>
+        <div class="btn-row">
+          <input type="text" id="cveInput" placeholder="e.g. log4j, OpenSSL, Apache RCE..." style="flex:1" />
+          <button class="btn-primary sm" onclick="searchCVE()">Search CVEs</button>
+        </div>
+        <div class="result-box" id="cveResult" style="max-height:300px">Output will appear here...</div>
+      </div>
+
+    </div>
+
   </main>
 </div>
 
@@ -355,6 +476,10 @@ end</pre>
   <button class="bnav-item" data-page="contact">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span>Contact</span>
+  </button>
+  <button class="bnav-item" data-page="advanced">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Advanced</span>
   </button>
 </nav>
 

@@ -449,6 +449,43 @@ html, body {
 .strength-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--muted); min-width: 52px; text-align: right; }
 
 /* ============================================
+   ADVANCED TOOL EXTRAS
+   ============================================ */
+.tool-select {
+  width: 100%;
+  background: rgba(255,255,255,.5);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+  transition: .15s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6880' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.tool-select:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(139,92,246,.1); }
+
+.pass-controls { display: flex; flex-direction: column; gap: 10px; }
+.pass-len-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); font-weight: 500; }
+.pass-len-row input[type="range"] { flex: 1; accent-color: var(--purple); height: 4px; cursor: pointer; }
+.len-num { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--purple-deep); min-width: 24px; text-align: right; }
+
+.check-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.check-row label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); font-weight: 500; cursor: pointer; }
+.check-row input[type="checkbox"] { accent-color: var(--purple); width: 14px; height: 14px; cursor: pointer; }
+
+.cve-card { flex-direction: column !important; }
+.cve-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 4px; }
+.cve-header .tool-desc { margin-bottom: 0; }
+.cve-card .btn-row { align-items: center; }
+
+/* ============================================
    ROBLOX GRID
    ============================================ */
 .roblox-grid {

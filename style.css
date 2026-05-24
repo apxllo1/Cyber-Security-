@@ -3,11 +3,13 @@
    ============================================ */
 
 :root {
-  --bg: #f6f5fb;
-  --surface: #ffffff;
-  --surface-alt: #faf9fe;
-  --border: #e8e6f0;
-  --border-strong: #d9d5e7;
+  --bg: #ebe8f8;
+  --surface: rgba(255,255,255,0.55);
+  --surface-alt: rgba(255,255,255,0.35);
+  --border: rgba(139,92,246,0.12);
+  --border-strong: rgba(139,92,246,0.22);
+  --glass: blur(18px) saturate(160%);
+  --glass-sm: blur(10px) saturate(140%);
 
   --ink: #15131e;
   --ink-2: #3d3a4d;
@@ -52,8 +54,10 @@ html, body {
   display: flex;
   height: 100vh;
   background:
-    radial-gradient(ellipse 70% 50% at 50% -10%, rgba(139,92,246,.1), transparent 60%),
-    radial-gradient(ellipse 40% 30% at 90% 20%, rgba(59,130,246,.07), transparent 60%),
+    radial-gradient(ellipse 80% 55% at 50% 0%,   rgba(139,92,246,.28), transparent 65%),
+    radial-gradient(ellipse 55% 45% at 95% 25%,  rgba(59,130,246,.18), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 5%  75%,  rgba(236,72,153,.12), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(99,102,241,.15), transparent 65%),
     var(--bg);
 }
 
@@ -65,8 +69,9 @@ html, body {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: rgba(255,255,255,.8);
-  backdrop-filter: blur(14px);
+  background: rgba(255,255,255,.45);
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass);
   border-right: 1px solid var(--border);
   padding: 20px 12px;
   gap: 8px;
@@ -195,7 +200,9 @@ html, body {
   display: flex;
   align-items: center;
   gap: 20px;
-  background: var(--surface);
+  background: rgba(255,255,255,.55);
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 28px 32px;
@@ -269,7 +276,9 @@ html, body {
   gap: 16px;
 }
 .stat-card {
-  background: var(--surface);
+  background: rgba(255,255,255,.5);
+  backdrop-filter: var(--glass-sm);
+  -webkit-backdrop-filter: var(--glass-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 22px 20px;
@@ -348,7 +357,9 @@ html, body {
 }
 
 .tool-card {
-  background: var(--surface);
+  background: rgba(255,255,255,.5);
+  backdrop-filter: var(--glass-sm);
+  -webkit-backdrop-filter: var(--glass-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 24px;
@@ -392,7 +403,7 @@ html, body {
 
 .tool-card textarea, .tool-card input[type="text"], .tool-card input[type="password"] {
   width: 100%;
-  background: var(--surface-alt);
+  background: rgba(255,255,255,.5);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
@@ -413,7 +424,7 @@ html, body {
 .btn-row { display: flex; gap: 7px; flex-wrap: wrap; }
 
 .result-box {
-  background: var(--surface-alt);
+  background: rgba(255,255,255,.4);
   border: 1px dashed var(--border-strong);
   border-radius: 10px;
   padding: 10px 12px;
@@ -447,7 +458,9 @@ html, body {
 }
 
 .info-card {
-  background: var(--surface);
+  background: rgba(255,255,255,.5);
+  backdrop-filter: var(--glass-sm);
+  -webkit-backdrop-filter: var(--glass-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 24px;
@@ -494,7 +507,9 @@ html, body {
    SKILLS
    ============================================ */
 .skills-wrap {
-  background: var(--surface);
+  background: rgba(255,255,255,.5);
+  backdrop-filter: var(--glass-sm);
+  -webkit-backdrop-filter: var(--glass-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 32px;
@@ -519,7 +534,9 @@ html, body {
    CONTACT
    ============================================ */
 .contact-card {
-  background: var(--surface);
+  background: rgba(255,255,255,.5);
+  backdrop-filter: var(--glass-sm);
+  -webkit-backdrop-filter: var(--glass-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 48px 40px;
@@ -563,8 +580,9 @@ html, body {
     position: fixed;
     bottom: 0; left: 0; right: 0;
     height: 64px;
-    background: rgba(255,255,255,.92);
-    backdrop-filter: blur(14px);
+    background: rgba(255,255,255,.5);
+    backdrop-filter: var(--glass);
+    -webkit-backdrop-filter: var(--glass);
     border-top: 1px solid var(--border);
     z-index: 50;
     justify-content: space-around;

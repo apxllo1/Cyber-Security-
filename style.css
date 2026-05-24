@@ -215,6 +215,8 @@ html, body {
 .page-logo-wrap.blue   { background: var(--blue-soft);   color: #1d4ed8; }
 .page-logo-wrap.green  { background: var(--green-soft);  color: #047857; }
 .page-logo-wrap.red    { background: var(--red-soft);    color: #dc2626; }
+.page-logo-wrap.roblox { background: none; padding: 0; overflow: hidden; }
+.page-logo-wrap.roblox svg { width: 100%; height: 100%; display: block; }
 
 .eyebrow {
   font-family: 'JetBrains Mono', monospace;

@@ -144,8 +144,8 @@ async function analyzeURL() {
   if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
   setResult('urlResult', 'Analyzing...', 'loading');
   let url;
-  try { url = new URL(raw); } catch { setResult('urlResult', 'Invalid URL format.', 'err'); return; }
-  const domain = url.hostname;
+  try { url = new URL(raw); } catch { setResult('urlResult', 'Invalid URL format — make sure it is a valid URL.', 'err'); return; }
+  const domain = url.hostname.toLowerCase();
   const out = [];
   out.push('=== URL STRUCTURE ===');
   out.push(`Protocol:  ${url.protocol}`);
@@ -154,58 +154,89 @@ async function analyzeURL() {
   if (url.pathname !== '/')  out.push(`Path:      ${url.pathname}`);
   if (url.search)            out.push(`Params:    ${url.search}`);
   if (url.hash)              out.push(`Fragment:  ${url.hash}`);
+  out.push(`Length:    ${raw.length} chars`);
   out.push('\n=== SECURITY CHECKS ===');
   const flags = [], safe = [];
   if (url.protocol === 'https:') safe.push('✅ HTTPS — encrypted connection');
-  else flags.push('⚠️  HTTP — unencrypted, vulnerable to MITM');
+  else flags.push('🚨 HTTP — unencrypted, vulnerable to MITM');
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(domain)) flags.push('🚨 Raw IP used as domain — real identity hidden');
-  const shorteners = ['bit.ly','tinyurl.com','t.co','goo.gl','ow.ly','is.gd','buff.ly','adf.ly','v.gd','tr.im','rb.gy','cutt.ly'];
-  if (shorteners.some(s => domain === s || domain.endsWith('.' + s))) flags.push('⚠️  URL shortener — true destination concealed');
+  const shorteners = ['bit.ly','tinyurl.com','t.co','goo.gl','ow.ly','is.gd','buff.ly','adf.ly','v.gd','tr.im','rb.gy','cutt.ly','shorturl.at','tiny.cc','b.link','dub.sh','lnkd.in','t.me','reurl.cc'];
+  if (shorteners.some(s => domain === s || domain.endsWith('.'+s))) flags.push('⚠️  URL shortener — true destination concealed');
   if (domain.includes('xn--')) flags.push('🚨 Punycode domain — possible homograph/lookalike attack');
   const parts = domain.split('.');
-  if (parts.length > 4) flags.push(`⚠️  ${parts.length - 2} subdomains — may obscure the real domain`);
-  const brands = ['paypal','amazon','google','microsoft','apple','netflix','facebook','roblox','discord','steam','bank','secure','login','verify','update','account'];
-  const found = brands.filter(b => domain.toLowerCase().includes(b));
-  if (found.length) flags.push(`⚠️  Brand keywords in domain: ${found.join(', ')} — possible phishing`);
-  const dangerExt = ['.exe','.bat','.cmd','.ps1','.vbs','.wsf','.msi','.scr','.pif','.hta','.jar','.sh'];
-  if (dangerExt.some(e => url.pathname.toLowerCase().endsWith(e))) flags.push(`🚨 Dangerous file extension in path`);
-  if (/\.(pdf|doc|docx|jpg|png)\.(exe|bat|cmd|ps1|scr)/i.test(url.pathname)) flags.push('🚨 Double extension trick — disguised executable');
-  if (/%00|%0d|%0a/i.test(url.pathname)) flags.push('🚨 Null byte / CRLF injection in URL');
-  const redirectParams = ['redirect','url','goto','next','return','returnurl','callback','destination'];
+  if (parts.length > 4) flags.push(`⚠️  Deep subdomain (${parts.length-2} levels) — may obscure the real domain`);
+  const brands = ['paypal','amazon','google','microsoft','apple','netflix','facebook','roblox','discord','steam','bank','secure','login','verify','update','account','signin','wallet','crypto','binance','coinbase','robux'];
+  const found = brands.filter(b => domain.includes(b));
+  if (found.length) flags.push(`⚠️  Brand keyword in domain: "${found.join(', ')}" — possible phishing`);
+  const tld = parts[parts.length-1];
+  if (['tk','ml','ga','cf','gq','xyz','top','icu','club','work','link','live'].includes(tld)) flags.push(`⚠️  Suspicious TLD: .${tld} — free/high-abuse TLD`);
+  const dangerExt = ['.exe','.bat','.cmd','.ps1','.vbs','.wsf','.msi','.scr','.pif','.hta','.jar','.sh','.dmg','.pkg'];
+  if (dangerExt.some(e => url.pathname.toLowerCase().endsWith(e))) flags.push('🚨 Dangerous file extension in path — likely executable');
+  if (/\.(pdf|doc|docx|jpg|png|txt)\.(exe|bat|cmd|ps1|scr|vbs)/i.test(url.pathname)) flags.push('🚨 Double extension trick — disguised executable');
+  if (/%00|%0d|%0a/i.test(raw)) flags.push('🚨 Null byte or CRLF injection detected');
+  if ((raw.match(/@/g)||[]).length) flags.push('🚨 @ symbol in URL — may be used to spoof the domain');
+  if (raw.length > 250) flags.push(`⚠️  Very long URL (${raw.length} chars) — may hide true destination`);
+  const redirectParams = ['redirect','url','goto','next','return','returnurl','callback','destination','target','redir'];
   const foundParams = [];
   for (const [k] of url.searchParams) if (redirectParams.some(r => k.toLowerCase().includes(r))) foundParams.push(k);
   if (foundParams.length) flags.push(`⚠️  Open redirect param(s): ${foundParams.join(', ')}`);
   for (const [k, v] of url.searchParams) {
-    if (v.length > 16 && /^[A-Za-z0-9+/]+=*$/.test(v)) {
+    if (v.length > 20 && /^[A-Za-z0-9+/]+=*$/.test(v)) {
       try { const d = atob(v); if (/[a-zA-Z]{5,}/.test(d)) flags.push(`⚠️  Base64 in param "${k}" → ${d.slice(0,80)}`); } catch {}
     }
   }
   flags.forEach(f => out.push(f));
   safe.forEach(s => out.push(s));
-  if (!flags.length && !safe.length) out.push('✅ No suspicious patterns detected');
+  if (!flags.length) out.push('✅ No suspicious structural patterns detected');
   out.push('\n=== DNS / IP INFO ===');
   try {
-    const dns = await fetch(`https://1.1.1.1/dns-query?name=${encodeURIComponent(domain)}&type=A`, { headers: { Accept: 'application/dns-json' } });
-    const dnsData = await dns.json();
-    const ips = dnsData.Answer?.map(r => r.data).filter(d => /^\d/.test(d)) || [];
-    if (ips.length) {
-      out.push(`DNS (A):   ${ips.join(', ')}`);
-      const ip = await fetch(`https://ipinfo.io/${ips[0]}/json`);
-      const ipData = await ip.json();
-      if (!ipData.bogon) {
-        out.push(`Location:  ${ipData.city || '?'}, ${ipData.region || '?'}, ${ipData.country || '?'}`);
-        out.push(`ISP/Org:   ${ipData.org || 'N/A'}`);
-        out.push(`Timezone:  ${ipData.timezone || 'N/A'}`);
+    const ac1 = new AbortController();
+    const t1 = setTimeout(() => ac1.abort(), 7000);
+    const dnsRes = await fetch(
+      `https://1.1.1.1/dns-query?name=${encodeURIComponent(domain)}&type=A`,
+      { headers: { Accept: 'application/dns-json' }, signal: ac1.signal }
+    );
+    clearTimeout(t1);
+    if (!dnsRes.ok) throw new Error(`DNS API returned ${dnsRes.status}`);
+    const dnsData = await dnsRes.json();
+    if (dnsData.Status === 3) {
+      out.push('NXDOMAIN — this domain does not exist in DNS.');
+      flags.push('🚨 Domain does not exist (NXDOMAIN)');
+    } else {
+      const ips = (dnsData.Answer || []).map(r => r.data).filter(d => /^\d{1,3}\.\d/.test(d));
+      if (ips.length) {
+        out.push(`DNS (A):   ${ips.join(', ')}`);
+        try {
+          const ac2 = new AbortController();
+          const t2 = setTimeout(() => ac2.abort(), 5000);
+          const ipRes = await fetch(`https://ipinfo.io/${ips[0]}/json`, { signal: ac2.signal });
+          clearTimeout(t2);
+          const ipData = await ipRes.json();
+          if (!ipData.bogon) {
+            out.push(`Location:  ${[ipData.city,ipData.region,ipData.country].filter(Boolean).join(', ')||'N/A'}`);
+            out.push(`ISP/Org:   ${ipData.org||'N/A'}`);
+            out.push(`Timezone:  ${ipData.timezone||'N/A'}`);
+            if (ipData.hostname) out.push(`Rev DNS:   ${ipData.hostname}`);
+          } else out.push('IP is private/bogon (not a public address).');
+        } catch (e) {
+          out.push(`IP geo: ${e.name==='AbortError'?'timed out (5s)':'lookup failed — '+e.message}`);
+        }
+      } else {
+        const cnames = (dnsData.Answer||[]).map(r=>r.data).filter(d=>/[a-z]/i.test(d));
+        out.push(cnames.length ? `No A record — CNAME to: ${cnames.join(', ')}` : 'No A records found for this domain.');
       }
-    } else out.push('No A records found.');
-  } catch { out.push('DNS lookup failed.'); }
+    }
+  } catch (e) {
+    out.push(`DNS lookup failed: ${e.name==='AbortError'?'timed out (7s) — check connection':e.message}`);
+  }
   out.push('\n=== VERDICT ===');
   const crit = flags.filter(f => f.startsWith('🚨')).length;
   const warn = flags.filter(f => f.startsWith('⚠️')).length;
-  if (crit)        out.push(`🚨 HIGH RISK — ${crit} critical issue(s) detected`);
-  else if (warn>1) out.push(`⚠️  SUSPICIOUS — ${warn} warnings — investigate before sharing`);
-  else if (warn)   out.push('⚠️  LOW CONCERN — 1 minor flag — verify before trusting');
-  else             out.push('✅ APPEARS SAFE — No significant threats found');
+  if (crit >= 2)     out.push(`🚨 HIGH RISK — ${crit} critical issue(s) + ${warn} warning(s)`);
+  else if (crit)     out.push(`🚨 HIGH RISK — ${crit} critical issue(s) detected`);
+  else if (warn > 1) out.push(`⚠️  SUSPICIOUS — ${warn} warning(s) — investigate before sharing`);
+  else if (warn)     out.push('⚠️  LOW CONCERN — 1 minor flag — verify before trusting');
+  else               out.push('✅ APPEARS SAFE — No significant threats found');
   setResult('urlResult', out.join('\n'));
 }
 
@@ -215,59 +246,163 @@ function deobfuscate() {
   if (!input) { setResult('deobfResult', 'Paste obfuscated code above.', 'warn'); return; }
   let code = input;
   const steps = [];
-  for (let pass = 0; pass < 8; pass++) {
+  const obfType = detectObfuscator(code);
+
+  for (let pass = 0; pass < 12; pass++) {
     const prev = code;
+
+    // URL decode
     try { const d = decodeURIComponent(code); if (d !== code) { steps.push('URL decode'); code = d; } } catch {}
-    const ent = code.replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(+n)).replace(/&#x([0-9a-fA-F]+);/g,(_,h)=>String.fromCharCode(parseInt(h,16))).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
-    if (ent !== code) { steps.push('HTML entity decode'); code = ent; }
+
+    // HTML entities
+    const ent = code
+      .replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(+n))
+      .replace(/&#x([0-9a-fA-F]+);/g,(_,h)=>String.fromCharCode(parseInt(h,16)))
+      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");
+    if (ent !== code) { steps.push('HTML entities'); code = ent; }
+
+    // Unicode \uXXXX
     const uni = code.replace(/\\u([0-9a-fA-F]{4})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
-    if (uni !== code) { steps.push('Unicode \\uXXXX'); code = uni; }
-    const hex = code.replace(/\\x([0-9a-fA-F]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
-    if (hex !== code) { steps.push('Hex \\xXX'); code = hex; }
-    const sfc = code.replace(/String\.fromCharCode\s*\(([^)]+)\)/g,(_,ns)=>{try{return ns.split(',').map(n=>String.fromCharCode(+n.trim())).join('');}catch{return _;}});
+    if (uni !== code) { steps.push('Unicode \\u'); code = uni; }
+
+    // Hex \xXX
+    const hx = code.replace(/\\x([0-9a-fA-F]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
+    if (hx !== code) { steps.push('Hex \\x'); code = hx; }
+
+    // JS String.fromCharCode(...)
+    const sfc = code.replace(/String\.fromCharCode\s*\(([^)]+)\)/g,(_,ns)=>{
+      try { return ns.split(',').map(n=>String.fromCharCode(+n.trim())).join(''); } catch { return _; }
+    });
     if (sfc !== code) { steps.push('String.fromCharCode'); code = sfc; }
+
+    // Lua string.char(n,n,...) — Lua Armor, custom encoders
+    const lsc = code.replace(/string\.char\s*\(([0-9,\s]+)\)/g, (_,ns) => {
+      try {
+        const nums = ns.split(',').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
+        if (nums.length && nums.every(n=>n>=0&&n<=255)) return '"'+String.fromCharCode(...nums)+'"';
+        return _;
+      } catch { return _; }
+    });
+    if (lsc !== code) { steps.push('Lua string.char'); code = lsc; }
+
+    // Lua decimal escapes \DDD — only when many are present (obfuscation indicator)
+    const luaDecCount = (code.match(/\\[0-9]{1,3}/g)||[]).length;
+    if (luaDecCount >= 4) {
+      const luaDec = code.replace(/\\([0-9]{1,3})/g, (_,n) => {
+        const c = parseInt(n);
+        return (c >= 32 && c <= 126) ? String.fromCharCode(c) : _;
+      });
+      if (luaDec !== code) { steps.push('Lua \\DDD escapes'); code = luaDec; }
+    }
+
+    // table.concat({65,66,...}) reassembly
+    const tbl = code.replace(/table\.concat\s*\(\s*\{([0-9,\s]+)\}\s*(?:,\s*['"]['"]\s*)?\)/g, (_,ns) => {
+      try {
+        const nums = ns.split(',').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
+        if (nums.length && nums.every(n=>n>0&&n<=127)) return '"'+String.fromCharCode(...nums)+'"';
+        return _;
+      } catch { return _; }
+    });
+    if (tbl !== code) { steps.push('table.concat decode'); code = tbl; }
+
+    // atob() calls
     const ab = code.replace(/atob\s*\(['"`]([A-Za-z0-9+/=]+)['"`]\)/g,(_,b)=>{try{return atob(b);}catch{return _;}});
-    if (ab !== code) { steps.push('atob() Base64'); code = ab; }
-    if (pass === 0 && /^[A-Za-z0-9+/]+=*$/.test(code) && code.length > 20) {
-      try { const d = atob(code); if (/[\x20-\x7E\n\r]{10,}/.test(d)) { steps.push('Base64 blob'); code = d; } } catch {}
+    if (ab !== code) { steps.push('atob()'); code = ab; }
+
+    // Dean Edwards packer: eval(function(p,a,c,k,e,d){...})
+    if (/eval\(function\(p,a,c,k,e/.test(code)) {
+      steps.push('Dean Edwards packer detected — eval() wrapper present');
     }
-    if (pass === 0 && /^[0-9a-fA-F\s]+$/.test(code) && code.replace(/\s/g,'').length > 20 && code.replace(/\s/g,'').length % 2 === 0) {
-      const hc = code.replace(/\s/g,'');
-      const d = hc.match(/.{2}/g)?.map(h=>String.fromCharCode(parseInt(h,16))).join('') || '';
-      if (/[\x20-\x7E]{10,}/.test(d)) { steps.push('Hex blob'); code = d; }
+
+    // JS hex array obfuscation: _0x1234=['a','b',...] → readable strings
+    const hexArr = code.replace(/_0x[0-9a-f]+\s*\(\s*'([^']+)'\s*\)/g, (_,s) => {
+      try { return '"' + atob(s) + '"'; } catch { return '"' + s + '"'; }
+    });
+    if (hexArr !== code) { steps.push('Hex array obfuscation'); code = hexArr; }
+
+    // Base64 blob (pass 0 only)
+    if (pass === 0 && /^[A-Za-z0-9+/]+=*$/.test(code.trim()) && code.trim().length > 20) {
+      try { const d = atob(code.trim()); if (/[\x20-\x7E\n\r]{10,}/.test(d)) { steps.push('Base64 blob'); code = d; } } catch {}
     }
+
+    // Hex blob (pass 0 only)
+    if (pass === 0) {
+      const stripped = code.replace(/[\s\n]/g,'');
+      if (/^[0-9a-fA-F]+$/.test(stripped) && stripped.length > 20 && stripped.length%2===0) {
+        const d = stripped.match(/.{2}/g).map(h=>String.fromCharCode(parseInt(h,16))).join('');
+        if (/[\x20-\x7E]{10,}/.test(d)) { steps.push('Hex blob'); code = d; }
+      }
+    }
+
     if (code === prev) break;
   }
+
   const lang = detectLang(code);
-  const risks = [];
-  if (/eval\s*\(/.test(code))                    risks.push('eval() — arbitrary code execution');
-  if (/Function\s*\(/.test(code))                risks.push('Function() constructor — code execution');
-  if (/document\.write/.test(code))              risks.push('document.write — DOM injection');
-  if (/innerHTML\s*=/.test(code))                risks.push('innerHTML — XSS risk');
-  if (/fetch\s*\(|XMLHttpRequest/.test(code))    risks.push('Network request — possible data exfiltration');
-  if (/localStorage|sessionStorage/.test(code))  risks.push('Storage access — credential/token theft');
-  if (/document\.cookie/.test(code))             risks.push('Cookie access — session hijacking');
-  if (/loadstring/.test(code))                   risks.push('Luau loadstring — remote script execution');
-  if (/game:HttpGet|HttpService/.test(code))     risks.push('Roblox HttpService — remote code loading');
-  if (/os\.execute|subprocess|popen/.test(code)) risks.push('System command execution');
-  if (/import\s+os|import\s+subprocess/.test(code)) risks.push('Python OS access — system commands');
-  if (/powershell|cmd\.exe|wscript/i.test(code)) risks.push('Shell execution detected');
-  let out = steps.length
-    ? `=== DECODED (${steps.length} layer${steps.length>1?'s':''}) ===\nLayers:   ${steps.join(' → ')}\nLanguage: ${lang}\n\n`
-    : `=== NO ENCODING DETECTED ===\nLanguage: ${lang}\nInput appears already decoded or uses unknown encoding.\n\n`;
+  const risks = detectRisks(code);
+  const obfLine = obfType ? `\nObfuscator: ${obfType}` : '';
+  const vmWarn  = obfType && obfType.includes('VM')
+    ? '\n⚠️  VM-based obfuscation — bytecode is embedded & encrypted.\n   Full deobfuscation requires running the Lua VM. Partial decode only.\n'
+    : '';
+
+  let out;
+  if (steps.length) {
+    out = `=== DECODED (${steps.length} pass${steps.length>1?'es':''}) ===${obfLine}\nLayers:   ${steps.join(' → ')}\nLanguage: ${lang}${vmWarn}\n\n`;
+  } else {
+    out = `=== ANALYSIS ===${obfLine}\nLanguage: ${lang}${vmWarn||'\nNo standard encoding layers detected.\nCode may use custom encryption, a VM, or be plain code.\n'}\n\n`;
+  }
   out += '=== OUTPUT ===\n' + code;
-  out += risks.length ? '\n\n=== ⚠️ RISK INDICATORS ===\n' + risks.map(r => '  🚨 ' + r).join('\n') : steps.length ? '\n\n✅ No dangerous patterns detected in decoded output.' : '';
+  if (risks.length) out += '\n\n=== ⚠️ RISK INDICATORS ===\n' + risks.map(r=>'  🚨 '+r).join('\n');
+  else if (steps.length) out += '\n\n✅ No dangerous patterns in decoded output.';
   setResult('deobfResult', out);
 }
 
+function detectObfuscator(code) {
+  // Named markers
+  if (/--\s*\[\[.*?Luraph/i.test(code) || /Luraph/i.test(code)) return 'Luraph (Lua VM obfuscator)';
+  if (/--\s*\[\[.*?IronBrew/i.test(code) || /IronBrew/i.test(code)) return 'IronBrew 2 (Lua VM obfuscator)';
+  if (/--\s*\[\[.*?Moonsec/i.test(code) || /Moonsec/i.test(code)) return 'Moonsec (Lua VM obfuscator)';
+  if (/--\s*\[\[.*?Prometheus/i.test(code) || /Prometheus/i.test(code)) return 'Prometheus (Lua obfuscator)';
+  if (/LuaArmor|Lua Armor/i.test(code)) return 'Lua Armor';
+  // Structural fingerprints
+  if (/^local\s+\w\s*=\s*"[^"]{300,}"/.test(code) && /bit\.(b?xor|band|bor|rshift)/.test(code)) return 'Luraph / Moonsec (VM obfuscator — long encrypted bytecode)';
+  if (/local\s+\w+\s*=\s*\{[^}]{800,}\}/.test(code) && /loadstring|load\s*\(/.test(code)) return 'Unknown Lua VM obfuscator';
+  if (/string\.char\s*\([0-9,\s]{60,}\)/.test(code)) return 'Lua Armor / string.char chain obfuscator';
+  // JS obfuscators
+  if (/_0x[0-9a-f]{4,}\s*=\s*\[/.test(code)) return 'obfuscator.io / js-obfuscator (hex array)';
+  if (/p,a,c,k,e,d/.test(code) && /eval\(function/.test(code)) return 'Dean Edwards Packer (JS)';
+  if (/\['\\x[0-9a-f]{2}'\]/.test(code) && /eval\s*\(/.test(code)) return 'JS string-escape obfuscator';
+  return null;
+}
+
+function detectRisks(code) {
+  const r = [];
+  if (/\beval\s*\(/.test(code))                          r.push('eval() — arbitrary code execution');
+  if (/\bFunction\s*\(/.test(code))                      r.push('Function() constructor — code execution');
+  if (/document\.write/.test(code))                      r.push('document.write — DOM injection');
+  if (/innerHTML\s*=/.test(code))                        r.push('innerHTML assignment — XSS risk');
+  if (/\bfetch\s*\(|XMLHttpRequest/.test(code))          r.push('Network request — possible data exfiltration');
+  if (/localStorage|sessionStorage/.test(code))          r.push('Storage access — credential/token theft');
+  if (/document\.cookie/.test(code))                     r.push('Cookie access — session hijacking');
+  if (/\bloadstring\s*\(/.test(code))                    r.push('Lua loadstring — remote script execution');
+  if (/game:HttpGet|HttpService/.test(code))             r.push('Roblox HttpService — remote code loading');
+  if (/getfenv|setfenv/.test(code))                      r.push('Lua getfenv/setfenv — environment manipulation');
+  if (/os\.execute|subprocess|popen/.test(code))         r.push('System command execution');
+  if (/import\s+os|import\s+subprocess/.test(code))      r.push('Python OS module — system access');
+  if (/powershell|cmd\.exe|wscript/i.test(code))         r.push('Shell execution detected');
+  if (/bit\.b?xor/.test(code))                           r.push('Bitwise XOR in Lua — possible runtime decryption layer');
+  if (/discord\.com\/api\/webhooks/i.test(code))         r.push('Discord webhook URL — possible token/data exfiltration');
+  if (/require\s*\(.*load|load.*require/i.test(code))    r.push('Dynamic require + load — remote module execution');
+  return r;
+}
+
 function detectLang(code) {
-  if (/function\s*\w*\s*\(|const\s+|let\s+|var\s+|=>\s*\{|document\.|window\./.test(code)) return 'JavaScript';
-  if (/def\s+\w+\s*\(|import\s+\w+|print\s*\(|__name__|:\s*$/.test(code))                  return 'Python';
-  if (/local\s+\w+|function\s+\w+\(|loadstring|game\.|workspace\.|script\./.test(code))    return 'Luau (Roblox)';
-  if (/\$\w+\s*=|Write-Host|Get-Process|Invoke-|\.ps1/.test(code))                         return 'PowerShell';
-  if (/@echo\s|^REM\s|SET\s+\w+=|GOTO\s/im.test(code))                                     return 'Batch/CMD';
-  if (/<html|<script|<!DOCTYPE/i.test(code))                                                 return 'HTML';
-  if (/\bSELECT\b.*\bFROM\b|\bINSERT\b.*\bINTO\b/i.test(code))                            return 'SQL';
+  if (/\blocal\s+\w+|string\.char|game\b|workspace\b|script\b|loadstring|\.new\s*\(/.test(code)) return 'Luau (Roblox)';
+  if (/function\s*\w*\s*\(|const\s+|let\s+|var\s+|=>\s*\{|document\.|window\./.test(code))       return 'JavaScript';
+  if (/def\s+\w+\s*\(|import\s+\w+|print\s*\(|__name__|:\s*$/.test(code))                        return 'Python';
+  if (/\$\w+\s*=|Write-Host|Get-Process|Invoke-/i.test(code))                                     return 'PowerShell';
+  if (/@echo\s|^REM\s|SET\s+\w+=|GOTO\s/im.test(code))                                            return 'Batch/CMD';
+  if (/<html|<script|<!DOCTYPE/i.test(code))                                                        return 'HTML';
+  if (/\bSELECT\b.*\bFROM\b|\bINSERT\b.*\bINTO\b/i.test(code))                                   return 'SQL';
   return 'Unknown / Generic';
 }
 

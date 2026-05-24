@@ -45,6 +45,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Advanced</span>
       </button>
+      <button class="nav-item" data-page="analyzer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Analyzer</span>
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -452,6 +456,79 @@ end</pre>
 
     </div>
 
+    <!-- ANALYZER PAGE -->
+    <div class="page" id="page-analyzer">
+      <div class="page-header">
+        <div class="page-logo-wrap purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="eyebrow">Links · Code · Files · Fingerprints</div>
+          <h2 class="page-title">Deep Analyzer</h2>
+          <p class="page-sub">Full URL threat analysis, multi-layer code deobfuscation, file forensics, and browser fingerprint logging.</p>
+        </div>
+      </div>
+
+      <!-- URL ANALYZER -->
+      <div class="tool-card az-full" style="margin-bottom:18px">
+        <div class="cve-header">
+          <div class="tool-icon purple">🔗</div>
+          <div>
+            <h3>URL / Link Analyzer</h3>
+            <p class="tool-desc">Parses structure, detects phishing signals, checks DNS + IP geo, flags dangerous extensions, open redirects, and homograph attacks.</p>
+          </div>
+        </div>
+        <div class="btn-row">
+          <input type="text" id="urlInput" placeholder="https://suspicious-link.com/path?param=value" style="flex:1" />
+          <button class="btn-primary sm" onclick="analyzeURL()">Analyze</button>
+        </div>
+        <div class="result-box" id="urlResult" style="max-height:320px">Output will appear here...</div>
+        <button class="btn-copy" onclick="copyResult('urlResult')">Copy result</button>
+      </div>
+
+      <!-- CODE DEOBFUSCATOR -->
+      <div class="tool-card az-full" style="margin-bottom:18px">
+        <div class="cve-header">
+          <div class="tool-icon blue">🔓</div>
+          <div>
+            <h3>Code Deobfuscator / Decoder</h3>
+            <p class="tool-desc">Multi-pass deobfuscation for JS, Luau, Python, PowerShell, Batch. Strips Base64, hex, Unicode escapes, String.fromCharCode, atob chains, and URL encoding. Flags eval, loadstring, shell commands, and data exfiltration.</p>
+          </div>
+        </div>
+        <textarea id="deobfInput" placeholder="Paste obfuscated code here — any language, any encoding layer..." rows="5"></textarea>
+        <button class="btn-primary sm" onclick="deobfuscate()">Deobfuscate</button>
+        <div class="result-box" id="deobfResult" style="max-height:360px">Output will appear here...</div>
+        <button class="btn-copy" onclick="copyResult('deobfResult')">Copy result</button>
+      </div>
+
+      <!-- FILE ANALYZER + IP FINGERPRINT -->
+      <div class="tools-grid">
+
+        <div class="tool-card">
+          <div class="tool-icon green">📁</div>
+          <h3>File Analyzer</h3>
+          <p class="tool-desc">Upload any file — detects true type from magic bytes, flags extension mismatches, computes SHA-1/256/512 hashes, and scans text-based files for malicious patterns.</p>
+          <div class="file-drop" id="fileDrop" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Drop file or click to upload</span>
+          </div>
+          <input type="file" id="fileInput" style="display:none" onchange="analyzeFile()" />
+          <div class="result-box" id="fileResult" style="max-height:280px">Upload a file to analyze...</div>
+          <button class="btn-copy" onclick="copyResult('fileResult')">Copy result</button>
+        </div>
+
+        <div class="tool-card">
+          <div class="tool-icon pink">🌐</div>
+          <h3>IP Logger / Fingerprint</h3>
+          <p class="tool-desc">Shows exactly what gets collected when someone visits a link — IP, ISP, location, browser, OS, screen, GPU, timezone, and more. Use to educate people about tracking risks.</p>
+          <button class="btn-primary sm" onclick="runFingerprint()">Run Fingerprint</button>
+          <div class="result-box" id="fingerprintResult" style="max-height:280px">Click to see what a tracker collects from your browser...</div>
+          <button class="btn-copy" onclick="copyResult('fingerprintResult')">Copy result</button>
+        </div>
+
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -480,6 +557,10 @@ end</pre>
   <button class="bnav-item" data-page="advanced">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span>Advanced</span>
+  </button>
+  <button class="bnav-item" data-page="analyzer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Analyzer</span>
   </button>
 </nav>
 

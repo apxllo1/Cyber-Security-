@@ -1,3 +1,18 @@
+// ===== PAGE NAVIGATION =====
+function goTo(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item, .bnav-item').forEach(b => b.classList.remove('active'));
+
+  const page = document.getElementById('page-' + pageId);
+  if (page) { page.classList.add('active'); page.scrollTop = 0; }
+
+  document.querySelectorAll('[data-page="' + pageId + '"]').forEach(b => b.classList.add('active'));
+}
+
+document.querySelectorAll('.nav-item, .bnav-item').forEach(btn => {
+  btn.addEventListener('click', () => goTo(btn.dataset.page));
+});
+
 // ===== HASH GENERATOR =====
 async function genHash(algo) {
   const input = document.getElementById('hashInput').value;

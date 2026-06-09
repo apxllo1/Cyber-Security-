@@ -1,0 +1,26 @@
+{
+  "name": "cybersecurity-discord-bot",
+  "version": "1.0.0",
+  "description": "Cybersecurity Discord bot with web dashboard control",
+  "main": "bot/index.js",
+  "scripts": {
+    "start": "node bot/index.js",
+    "dev": "nodemon bot/index.js",
+    "web": "node server/api.js"
+  },
+  "keywords": ["discord", "bot", "cybersecurity", "security-tools"],
+  "author": "apxllo1",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.0",
+    "crypto": "^1.0.1",
+    "joi": "^17.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
